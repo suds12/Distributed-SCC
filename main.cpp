@@ -2,14 +2,15 @@
 #include <cstdlib>
 #include <mpi.h>
 #include "merge.hpp"
-
+#include "basic.hpp"
 //#include "main_code.cpp"
 #include "update.cpp"
-//#include "reader.hpp"
+#include "reader.hpp"
 
 using namespace std;
 //Global variables
 vector<set <int> > sccSets;
+int world_rank, world_size;
 
 
 int main(int argc, char *argv[])
@@ -27,10 +28,15 @@ int main(int argc, char *argv[])
 	
     //shared_scc(argc, argv);
     //Reader r1;
-    Update u1;
-    u1.read_partitions(argv);
-    u1.read_graph(argv,world_rank);
-    u1.display(world_rank);
+    Basic graph;
+    read_partitions(argv,graph);
+    // Update u1;
+    // u1.read_partitions(argv);
+    read_graph(argv,graph,world_rank);
+    //display(graph,world_rank);
+    perform_scc(argv,graph,world_rank);
+    disjoint_union(graph,world_rank);
+
     
     
 

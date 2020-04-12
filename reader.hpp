@@ -2,136 +2,133 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
-#include "basic.hpp"
+//#include "basic.hpp"
 
 #include <unordered_set>
 using namespace std;
 
-class Reader:public Basic
+
+void read_partitions(char *argv[], Basic& graph)
 {
-public:
-	void read_partitions(char *argv[])
+	int vertex=0, part;
+	unordered_set<int> :: iterator itr;
+
+	ifstream file4 (argv[6]); if (!file4.is_open() ) { cout<<"INPUT ERROR:: Could not open file\n";}
+
+	
+	while(file4 >> part)
 	{
-		int vertex=0, part;
-		unordered_set<int> :: iterator itr;
-
-		ifstream file4 (argv[6]); if (!file4.is_open() ) { cout<<"INPUT ERROR:: Could not open file\n";}
-
-		
-		while(file4 >> part)
-		{
-			partition_of_vertex.insert({vertex, part});
-			vertex++;
-		}
-
+		graph.partition_of_vertex.insert({vertex, part});
+		vertex++;
 	}
 
-	void read_graph(char *argv[], int world_rank)
+}
+
+void read_graph(char *argv[], Basic &graph, int world_rank)
+{
+	int vertex, temp=0, edge_count=0, v1,v2;
+	
+
+	ifstream file1 (argv[1]); if (!file1.is_open() ) { cout<<"INPUT ERROR:: Could not open file\n";}
+
+	while(file1 >> vertex)
 	{
-		int vertex, temp=0, edge_count=0, v1,v2;
-		
-
-		ifstream file1 (argv[1]); if (!file1.is_open() ) { cout<<"INPUT ERROR:: Could not open file\n";}
-
-		while(file1 >> vertex)
+		if(temp == 0 )    // Reading vertex1 of edge
 		{
-			if(temp == 0 )    // Reading vertex1 of edge
+			v1=vertex;
+			temp++;
+			continue;
+		}
+		if(temp == 1)	// Reading vertex2 of edge
+		{
+			v2=vertex;
+			//cout<<v1<<" "<<v2<<" "<<partition_of_vertex.at(v1)<<" "<<partition_of_vertex.at(v2)<<"\n";
+
+			if(graph.partition_of_vertex.at(v1) != graph.partition_of_vertex.at(v2))  //Edge across partitions
 			{
-				v1=vertex;
-				temp++;
-				continue;
-			}
-			if(temp == 1)	// Reading vertex2 of edge
-			{
-				v2=vertex;
-				//cout<<v1<<" "<<v2<<" "<<partition_of_vertex.at(v1)<<" "<<partition_of_vertex.at(v2)<<"\n";
-
-				if(partition_of_vertex.at(v1) != partition_of_vertex.at(v2))  //Edge across partitions
+				//cout<<world_rank<<endl;
+				//Here we allocate an edge to the two processes that holds the vertices
+				if(world_rank == graph.partition_of_vertex.at(v1) or world_rank == graph.partition_of_vertex.at(v2))
 				{
-					//cout<<world_rank<<endl;
-					//Here we allocate an edge to the two processes that holds the vertices
-					if(world_rank == partition_of_vertex.at(v1) or world_rank == partition_of_vertex.at(v2))
-					{
-						vector<int> edge;
-						edge.push_back(v1);
-						edge.push_back(v2);
-						allocated_graph.push_back(edge);
+					vector<int> edge;
+					edge.push_back(v1);
+					edge.push_back(v2);
+					graph.allocated_graph.push_back(edge);
 
-						//mark mirror nodes
-						if(world_rank == partition_of_vertex.at(v1))
-							mirror_vertices.insert(v2);
-						else if(world_rank == partition_of_vertex.at(v2))
-							mirror_vertices.insert(v1);
-
-					}
-										
-				}
-				else//Edge within the same partition. 
-				{
-
-					//Here we allocate an edge only to the process that holds both the vertices
-					if(world_rank == partition_of_vertex.at(v1))
-					{
-
-						vector<int> edge;
-						edge.push_back(v1);
-						edge.push_back(v2);
-						allocated_graph.push_back(edge);
-					}
+					//mark mirror nodes
+					if(world_rank == graph.partition_of_vertex.at(v1))
+						graph.mirror_vertices.insert(v2);
+					else if(world_rank == graph.partition_of_vertex.at(v2))
+						graph.mirror_vertices.insert(v1);
 
 				}
-				temp=2;
-				continue;
+									
 			}
-			if(temp == 2)		//Skip over the weight column
+			else//Edge within the same partition. 
 			{
-				temp=0;
-				continue;
+
+				//Here we allocate an edge only to the process that holds both the vertices
+				if(world_rank == graph.partition_of_vertex.at(v1))
+				{
+
+					vector<int> edge;
+					edge.push_back(v1);
+					edge.push_back(v2);
+					graph.allocated_graph.push_back(edge);
+				}
+
 			}
-
+			temp=2;
+			continue;
 		}
-
-		
-
-	}
-
-	void display(int world_rank)
-	{
-		// for(int i=0;i<np;i++)
-		// {
-		// 	// cout<<"\n"<<i<<" : ";
-		// 	// for(unordered_set<int> :: iterator it = mirror_vertices[i].begin(); it != mirror_vertices[i].end();++it)
-		// 	// {
-		// 	// 	cout<<*it;
-		// 	// }
-		// }
-		vector< vector<int> >::iterator row;
-		vector<int>::iterator col;
-		//unordered_set<int>::iterator it;
-
-		//Display allocated graph for specific partition
-		// if(world_rank==2)
-		// {
-		// 	for(row=allocated_graph.begin(); row<allocated_graph.end(); row++)
-		// 	{
-		// 		cout<<endl;
-		// 		for(col = row->begin(); col != row->end(); col++)
-		// 		{
-		// 			cout<<*col<<" ";
-		// 		}
-		// 	}
-		// }
-
-		//Display mirrors for specific partition
-		if(world_rank==0)
+		if(temp == 2)		//Skip over the weight column
 		{
-			for(auto it=mirror_vertices.begin(); it!=mirror_vertices.end(); it++)
-				cout<<*it<<" ";
-
+			temp=0;
+			continue;
 		}
-		
+
 	}
-};
+
+	
+
+}
+
+void display(Basic &graph, int world_rank)
+{
+	// for(int i=0;i<np;i++)
+	// {
+	// 	// cout<<"\n"<<i<<" : ";
+	// 	// for(unordered_set<int> :: iterator it = mirror_vertices[i].begin(); it != mirror_vertices[i].end();++it)
+	// 	// {
+	// 	// 	cout<<*it;
+	// 	// }
+	// }
+	vector< vector<int> >::iterator row;
+	vector<int>::iterator col;
+	//unordered_set<int>::iterator it;
+
+	//Display allocated graph for specific partition
+	// if(world_rank==2)
+	// {
+	// 	for(row=allocated_graph.begin(); row<allocated_graph.end(); row++)
+	// 	{
+	// 		cout<<endl;
+	// 		for(col = row->begin(); col != row->end(); col++)
+	// 		{
+	// 			cout<<*col<<" ";
+	// 		}
+	// 	}
+	// }
+
+	//Display mirrors for specific partition
+	if(world_rank==0)
+	{
+		for(auto it=graph.mirror_vertices.begin(); it!=graph.mirror_vertices.end(); it++)
+			cout<<*it<<" ";
+
+	}
+	
+}
 
 
 
