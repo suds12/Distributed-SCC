@@ -17,9 +17,11 @@ public:
 	vector<vector<int>> allocated_graph;
 	//vector<set<int>> local_scc;
 	vector<int>local_scc;
+	vector<unordered_set<int>>temp_scc;
 	vector<unordered_set<int>>l_scc;
 	unordered_set<int> relevant_vertices;
 	vector<int> intersection_set;
+	vector<vector<int>>merge_detail;
 	unordered_map<int, int> parent_scc;
 	int iteration;
 

@@ -156,10 +156,10 @@ void merge_ds(char *argv[], Basic &basic, Graph& graph, int world_rank)
 
 		// for(i=0;i<argv[7];i++)
 		// {
-			MPI_Irecv(&buffer[0], 10, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &request);
-			MPI_Wait(&request, &status);
-			for(auto it=buffer.begin(); it!=buffer.end(); it++)
-				cout<<"*"<<*it;
+			//MPI_Irecv(&buffer[0], 10, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &request);
+			//MPI_Wait(&request, &status);
+			//for(auto it=buffer.begin(); it!=buffer.end(); it++)
+				//cout<<"*"<<;
 			
 		//}
 	}
@@ -172,6 +172,7 @@ void display(Basic &basic, Graph &graph, int world_rank)
 	ofstream rel_dump("dump/rel_" + std::to_string(world_rank) + ".txt");
 	ofstream inter_dump("dump/int_" + std::to_string(world_rank) + ".txt");
 	ofstream mirror_dump("dump/mir_" + std::to_string(world_rank) + ".txt");
+	ofstream l_scc_dump("dump/l_scc_" + std::to_string(world_rank) + ".txt");
 
 	// for(int i=0;i<np;i++)
 	// {
@@ -221,11 +222,19 @@ void display(Basic &basic, Graph &graph, int world_rank)
 	//Display local SCC
 	// for (size_t i = 0; i < boost::num_vertices (graph); ++i)
  //    	cout << basic.local_scc[i] << " ";
-	//Display local SCC in sets
+	//Display local merge details
 	for(int it=0;it<basic.l_scc.size();it++)
 	{
-		scc_dump<<it<<" : ";
+		l_scc_dump<<it<<" : ";
 		for(auto itr=basic.l_scc[it].begin(); itr!=basic.l_scc[it].end();itr++)
+			l_scc_dump<<*itr<<" ";
+		l_scc_dump<<endl;
+	}
+	//Display local merge details
+	for(int it=0;it<basic.merge_detail.size();it++)
+	{
+		scc_dump<<it<<" : ";
+		for(auto itr=basic.merge_detail[it].begin(); itr!=basic.merge_detail[it].end();itr++)
 			scc_dump<<*itr<<" ";
 		scc_dump<<endl;
 	}
@@ -235,10 +244,10 @@ void display(Basic &basic, Graph &graph, int world_rank)
 		rel_dump<<*it<<" ";
 	}
 	//Display intersection
-	for(auto it=basic.intersection_set.begin(); it!=basic.intersection_set.end(); it++)
-	{
-		inter_dump<<*it<<" ";
-	}
+	// for(auto it=basic.intersection_set.begin(); it!=basic.intersection_set.end(); it++)
+	// {
+	// 	inter_dump<<*it<<" ";
+	// }
 
 	
 }

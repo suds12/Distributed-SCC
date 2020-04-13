@@ -97,7 +97,7 @@ void perform_scc(char *argv[], Basic& basic, Graph& graph, int world_rank)   //S
 	unordered_set<int> empty;
 	for(int i=0;i<num_components;i++)
 	{
-		basic.l_scc.push_back(empty);
+		basic.temp_scc.push_back(empty);
 	}
 	// basic.l_scc[basic.local_scc[2]].insert(4);
 	// basic.l_scc[basic.local_scc[2]].insert(9);
@@ -110,12 +110,15 @@ void perform_scc(char *argv[], Basic& basic, Graph& graph, int world_rank)   //S
 		//cout<<"**"<<basic.relevant_vertices.count(i)<<" ";
 		if(basic.relevant_vertices.count(i)!=0)
 		{
-			basic.l_scc[basic.local_scc[i]].insert(i);
+			basic.temp_scc[basic.local_scc[i]].insert(i);
 		//cout<<"&&"<<basic.local_scc[i];
 		}
 		
-		//cout<<basic.local_scc[i]<<" ";
-		//cout<<*it<<" ";
+	}
+	for(int i=0;i<basic.temp_scc.size();i++)
+	{
+		if(!basic.temp_scc[i].empty())
+			basic.l_scc.push_back(basic.temp_scc[i]);
 	}
 	// for(int it=0;it<basic.l_scc.size();it++)
 	// {
@@ -133,42 +136,30 @@ void perform_scc(char *argv[], Basic& basic, Graph& graph, int world_rank)   //S
 void disjoint_union(Basic& basic, int world_rank)
 {
 	//Find intersection of new mirrors with each SCC
+	cout<<basic.l_scc.size();
 	for(int it=0;it<basic.l_scc.size();it++)
 	{
+		basic.merge_detail.push_back(std::vector<int>());
 		for (auto element = basic.mirror_vertices.begin(); element != basic.mirror_vertices.end();element++) 
 		{
 		  if (basic.l_scc[it].find(*element) != basic.l_scc[it].end()) 
 		  {
 		    basic.intersection_set.push_back(*element);
+		    basic.merge_detail[it].push_back(*element);
 		  }
 		}
 	}
 
 	int buffer2[2];
 	MPI_Request request;
-	basic.intersection_set.push_back(5);
-	if(world_rank==1)
-	{
-		 buffer2[0]=6;
-		 buffer2[1]=9;
+	//basic.intersection_set.push_back(5);
+	
 
-
-	}
-	if(world_rank==2)
-	{
-		 buffer2[0]=4;
-		 buffer2[1]=5;
-		 
-	}
-
-	MPI_Isend(&basic.intersection_set[0], 10, MPI_INT, 0, 123, MPI_COMM_WORLD, &request);
+	//MPI_Isend(&basic.intersection_set[0], 10, MPI_INT, 0, 123, MPI_COMM_WORLD, &request);
 	
 }
 
-void merge(Basic& basic, int world_rank)
-{
 
-}
 
 //template func to test if two sets are disjoint
 template<class Set1, class Set2> 
