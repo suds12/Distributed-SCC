@@ -56,6 +56,10 @@ void read_graph(char *argv[], Basic &basic, Graph& graph, int world_rank)
 					basic.allocated_graph.push_back(edge);
 
 					boost::add_edge (v1, v2, graph);  //boost graph
+					//Additional booking. Don't time
+					basic.relevant_vertices.insert(v1);
+					basic.relevant_vertices.insert(v2);
+
 
 					//mark mirror nodes
 					if(world_rank == basic.partition_of_vertex.at(v1))
@@ -77,6 +81,9 @@ void read_graph(char *argv[], Basic &basic, Graph& graph, int world_rank)
 					edge.push_back(v1);
 					edge.push_back(v2);
 					basic.allocated_graph.push_back(edge);
+					//Additional booking. Don't time
+					basic.relevant_vertices.insert(v1);
+					basic.relevant_vertices.insert(v2);
 
 					boost::add_edge (v1, v2, graph);   //boost graph
 				}
@@ -102,6 +109,11 @@ void read_graph(char *argv[], Basic &basic, Graph& graph, int world_rank)
 
 void display(Basic &basic, Graph &graph, int world_rank)
 {
+	ofstream scc_dump("dump/file_no_" + std::to_string(world_rank) + ".txt");
+	ofstream rel_dump("dump/rel_" + std::to_string(world_rank) + ".txt");
+	ofstream inter_dump("dump/int_" + std::to_string(world_rank) + ".txt");
+	ofstream mirror_dump("dump/mir_" + std::to_string(world_rank) + ".txt");
+
 	// for(int i=0;i<np;i++)
 	// {
 	// 	// cout<<"\n"<<i<<" : ";
@@ -128,16 +140,35 @@ void display(Basic &basic, Graph &graph, int world_rank)
 	// }
 
 	//Display mirrors for specific partition
-	// if(world_rank==0)
-	// {
-	// 	for(auto it=basic.mirror_vertices.begin(); it!=basic.mirror_vertices.end(); it++)
-	// 		cout<<*it<<" ";
+	if(world_rank==0)
+	{
+		for(auto it=basic.mirror_vertices.begin(); it!=basic.mirror_vertices.end(); it++)
+			mirror_dump<<*it<<" ";
 
-	// }
+	}
 
 	//Display local SCC
-	for (size_t i = 0; i < boost::num_vertices (graph); ++i)
-    	cout << basic.local_scc[i] << " ";
+	// for (size_t i = 0; i < boost::num_vertices (graph); ++i)
+ //    	cout << basic.local_scc[i] << " ";
+	//Display local SCC in sets
+	for(int it=0;it<basic.l_scc.size();it++)
+	{
+		scc_dump<<it<<" : ";
+		for(auto itr=basic.l_scc[it].begin(); itr!=basic.l_scc[it].end();itr++)
+			scc_dump<<*itr<<" ";
+		scc_dump<<endl;
+	}
+	//Display relevant vertices
+	for(auto it=basic.relevant_vertices.begin(); it!=basic.relevant_vertices.end(); it++)
+	{
+		rel_dump<<*it<<" ";
+	}
+	//Display intersection
+	for(auto it=basic.intersection_set.begin(); it!=basic.intersection_set.end(); it++)
+	{
+		inter_dump<<*it<<" ";
+	}
+
 	
 }
 

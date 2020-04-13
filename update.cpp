@@ -91,11 +91,58 @@ void perform_scc(char *argv[], Basic& basic, Graph& graph, int world_rank)   //S
 	// for (size_t i = 0; i < boost::num_vertices (graph); ++i)
  //    	cout << component[i] << " ";
 
+	
+	//Addition conversion. Don't track
+	int temp=0;
+	unordered_set<int> empty;
+	for(int i=0;i<num_components;i++)
+	{
+		basic.l_scc.push_back(empty);
+	}
+	// basic.l_scc[basic.local_scc[2]].insert(4);
+	// basic.l_scc[basic.local_scc[2]].insert(9);
+	// //cout<<basic.local_scc[8];
+	// for(auto itr=basic.l_scc[1].begin();itr!=basic.l_scc[1].end();itr++)
+	// 	cout<<*itr;
+
+	for(int i=0;i<boost::num_vertices (graph);i++)
+	{
+		//cout<<"**"<<basic.relevant_vertices.count(i)<<" ";
+		if(basic.relevant_vertices.count(i)!=0)
+		{
+			basic.l_scc[basic.local_scc[i]].insert(i);
+		//cout<<"&&"<<basic.local_scc[i];
+		}
+		
+		//cout<<basic.local_scc[i]<<" ";
+		//cout<<*it<<" ";
+	}
+	// for(int it=0;it<basic.l_scc.size();it++)
+	// {
+	// 	cout<<it<<" : ";
+	// 	for(auto itr=basic.l_scc[it].begin(); itr!=basic.l_scc[it].end();itr++)
+	// 		cout<<*itr<<" ";
+	// 	cout<<endl;
+	// }
+
+
+
 }
 
 
 void disjoint_union(Basic& basic, int world_rank)
 {
+	//Find intersection of new mirrors with each SCC
+	for(int it=0;it<basic.l_scc.size();it++)
+	{
+		for (auto element = basic.mirror_vertices.begin(); element != basic.mirror_vertices.end();element++) 
+		{
+		  if (basic.l_scc[it].find(*element) != basic.l_scc[it].end()) 
+		  {
+		    basic.intersection_set.push_back(*element);
+		  }
+		}
+	}
 
 
 }

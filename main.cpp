@@ -35,7 +35,7 @@ int main(int argc, char *argv[])
     // u1.read_partitions(argv);
     read_graph(argv,basic,graph,world_rank);
     perform_scc(argv,basic,graph,world_rank);
-    //disjoint_union(basic,graph,world_rank);
+    disjoint_union(basic,world_rank);
 
     
     
