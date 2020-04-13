@@ -2,6 +2,8 @@
 #include <unordered_set>
 #include <set>
 #include <map> 
+#include <unordered_map> 
+
 #include <vector>
 #include <boost/graph/adjacency_list.hpp>
 
@@ -18,6 +20,8 @@ public:
 	vector<unordered_set<int>>l_scc;
 	unordered_set<int> relevant_vertices;
 	vector<int> intersection_set;
+	unordered_map<int, int> parent_scc;
+	int iteration;
 
 
 };

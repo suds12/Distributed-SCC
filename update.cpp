@@ -92,7 +92,7 @@ void perform_scc(char *argv[], Basic& basic, Graph& graph, int world_rank)   //S
  //    	cout << component[i] << " ";
 
 	
-	//Addition conversion. Don't track
+	//Additional conversions. Don't time
 	int temp=0;
 	unordered_set<int> empty;
 	for(int i=0;i<num_components;i++)
@@ -144,6 +144,29 @@ void disjoint_union(Basic& basic, int world_rank)
 		}
 	}
 
+	int buffer2[2];
+	MPI_Request request;
+	basic.intersection_set.push_back(5);
+	if(world_rank==1)
+	{
+		 buffer2[0]=6;
+		 buffer2[1]=9;
+
+
+	}
+	if(world_rank==2)
+	{
+		 buffer2[0]=4;
+		 buffer2[1]=5;
+		 
+	}
+
+	MPI_Isend(&basic.intersection_set[0], 10, MPI_INT, 0, 123, MPI_COMM_WORLD, &request);
+	
+}
+
+void merge(Basic& basic, int world_rank)
+{
 
 }
 

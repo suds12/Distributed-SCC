@@ -5,6 +5,7 @@
 //#include "basic.hpp"
 
 #include <unordered_set>
+
 using namespace std;
 
 
@@ -13,11 +14,15 @@ void read_partitions(char *argv[], Basic& basic, Graph& graph)
 	int vertex=0, part;
 	unordered_set<int> :: iterator itr;
 
-	ifstream file4 (argv[6]); if (!file4.is_open() ) { cout<<"INPUT ERROR:: Could not open file\n";}
+	ifstream file4 (argv[6]); if (!file4.is_open() ) { cout<<"INPUT ERROR:: Could not open file 4\n";}
 
 	
 	while(file4 >> part)
 	{
+		//Create initial disjoint set only on root process
+		if(world_rank==0)
+			global_scc.make_set(vertex);
+
 		basic.partition_of_vertex.insert({vertex, part});
 		vertex++;
 	}
@@ -29,7 +34,7 @@ void read_graph(char *argv[], Basic &basic, Graph& graph, int world_rank)
 	int vertex, temp=0, edge_count=0, v1,v2;
 	
 
-	ifstream file1 (argv[1]); if (!file1.is_open() ) { cout<<"INPUT ERROR:: Could not open file\n";}
+	ifstream file1 (argv[1]); if (!file1.is_open() ) { cout<<"INPUT ERROR:: Could not open file 1\n";}
 
 	while(file1 >> vertex)
 	{
@@ -42,7 +47,7 @@ void read_graph(char *argv[], Basic &basic, Graph& graph, int world_rank)
 		if(temp == 1)	// Reading vertex2 of edge
 		{
 			v2=vertex;
-			//cout<<v1<<" "<<v2<<" "<<partition_of_vertex.at(v1)<<" "<<partition_of_vertex.at(v2)<<"\n";
+
 
 			if(basic.partition_of_vertex.at(v1) != basic.partition_of_vertex.at(v2))  //Edge across partitions
 			{
@@ -107,6 +112,60 @@ void read_graph(char *argv[], Basic &basic, Graph& graph, int world_rank)
 
 }
 
+void merge_ds(char *argv[], Basic &basic, Graph& graph, int world_rank)
+{
+	int vertex, temp=0, id, X;
+	basic.iteration=0;
+	ifstream file2 (argv[2]); if (!file2.is_open() ) { cout<<"INPUT ERROR:: Could not open file 2\n";}
+
+	if(world_rank == 0)
+	{
+		if(basic.iteration==0)
+		{
+			while(file2 >> X)
+			{
+				if(temp==0) //Reading vertex
+				{
+					vertex=X;
+					temp++;
+					continue;
+				}
+				if(temp==1)
+				{
+					if(basic.parent_scc.find(X) == basic.parent_scc.end())
+					{
+						basic.parent_scc.insert(pair<int,int>(X,vertex));
+					}
+					else
+					{
+						cout<<basic.parent_scc.at(X)<<" "<<vertex<<endl;
+						global_scc.union_set(basic.parent_scc.at(X), vertex);
+					}
+
+					temp=0;
+					continue;
+				}
+			
+			}
+		}
+
+		
+		vector<int> buffer(10);
+		MPI_Request request;
+		MPI_Status status;
+
+		// for(i=0;i<argv[7];i++)
+		// {
+			MPI_Irecv(&buffer[0], 10, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &request);
+			MPI_Wait(&request, &status);
+			for(auto it=buffer.begin(); it!=buffer.end(); it++)
+				cout<<"*"<<*it;
+			
+		//}
+	}
+
+}
+
 void display(Basic &basic, Graph &graph, int world_rank)
 {
 	ofstream scc_dump("dump/file_no_" + std::to_string(world_rank) + ".txt");
@@ -143,9 +202,21 @@ void display(Basic &basic, Graph &graph, int world_rank)
 	if(world_rank==0)
 	{
 		for(auto it=basic.mirror_vertices.begin(); it!=basic.mirror_vertices.end(); it++)
+		{
 			mirror_dump<<*it<<" ";
-
+		}
 	}
+
+	// if(world_rank ==0)
+	// {
+	// 	for(int i=0;i<12;i++)
+	// 		{
+	// 			cout<<global_scc.find_set(i);
+	// 		}
+		
+	// }
+
+
 
 	//Display local SCC
 	// for (size_t i = 0; i < boost::num_vertices (graph); ++i)
