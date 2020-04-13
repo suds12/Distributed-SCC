@@ -135,7 +135,7 @@ void perform_scc(char *argv[], Basic& basic, Graph& graph, int world_rank)   //S
 
 void disjoint_union(Basic& basic, int world_rank)
 {
-	int root;
+	int root,count=0;
 	//Find intersection of new mirrors with each SCC
 	cout<<basic.l_scc.size();
 	for(int it=0;it<basic.l_scc.size();it++)
@@ -143,6 +143,7 @@ void disjoint_union(Basic& basic, int world_rank)
 		basic.merge_detail.push_back(std::vector<int>());
 		
 		root= *basic.l_scc[it].begin();   //Some random element chosen from the set. Used as parent of the set when merging and sent along with inrtersections
+		root=-root;
 		basic.merge_detail[it].push_back(root); //First element of the row vector is root followed by intersections.
 		for (auto element = basic.mirror_vertices.begin(); element != basic.mirror_vertices.end();element++) 
 		{
@@ -150,23 +151,23 @@ void disjoint_union(Basic& basic, int world_rank)
 		  {
 		    //basic.intersection_set.push_back(*element);
 		    basic.merge_detail[it].push_back(*element);
+		    count++;//For bookeeping
 		  }
-		  else
-		  {
-		  	//Remove if there are no intersections 
-		  	basic.merge_detail[it].pop_back();
-		  	basic.merge_detail.pop_back();
-		  }
-
 		}
 	}
 
 	int buffer2[2];
 	MPI_Request request;
-	//basic.intersection_set.push_back(5);
 	
+	//Remove this from timing as I would implicitly be storing 2d vectors as a flattened array. Those are much better for MPI communication
+	int* details = new int[count];
+	for(int i=0;i<basic.merge_detail.size();i++)
+	{
+		std::copy(basic.merge_detail[i].begin(), basic.merge_detail[i].end(), details);
+	}
 
-	//MPI_Isend(&basic.intersection_set[0], 10, MPI_INT, 0, 123, MPI_COMM_WORLD, &request);
+	if(world_rank==1)
+		MPI_Isend(&details[0], count, MPI_INT, 0, 123, MPI_COMM_WORLD, &request);
 	
 }
 

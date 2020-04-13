@@ -34,7 +34,7 @@ void read_graph(char *argv[], Basic &basic, Graph& graph, int world_rank)
 	int vertex, temp=0, edge_count=0, v1,v2;
 	
 
-	ifstream file1 (argv[1]); if (!file1.is_open() ) { cout<<"INPUT ERROR:: Could not open file 1\n";}
+	ifstream file1 (argv[1]); if (!file1.is_open() ) { cout<<"INPUT ERROR:: Could not open file 1 "<<world_rank;}
 
 	while(file1 >> vertex)
 	{
@@ -150,16 +150,19 @@ void merge_ds(char *argv[], Basic &basic, Graph& graph, int world_rank)
 		}
 
 		
-		vector<int> buffer(10);
+		int *details;
+		int MAX_NUMBERS=100;
 		MPI_Request request;
 		MPI_Status status;
 
 		// for(i=0;i<argv[7];i++)
 		// {
-			//MPI_Irecv(&buffer[0], 10, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &request);
-			//MPI_Wait(&request, &status);
-			//for(auto it=buffer.begin(); it!=buffer.end(); it++)
-				//cout<<"*"<<;
+			MPI_Irecv(&details[0], MAX_NUMBERS, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &request);
+			MPI_Wait(&request, &status);
+			for(int i=0;i<20;i++)
+			{
+				cout<<"*"<<i;
+			}
 			
 		//}
 	}
