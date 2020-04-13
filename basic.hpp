@@ -13,6 +13,7 @@ public:
 	unordered_set<int> mirror_vertices;  //vector of sets. Each row of vector is a set of mirror vertices for that partition
 	vector<vector<int>> allocated_graph;
 	vector<set<int>> local_scc;
-	
+
 
 };
+
