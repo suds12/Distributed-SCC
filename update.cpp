@@ -9,21 +9,12 @@
 #include "main_code.cpp"
 
 
-typedef
-  boost::adjacency_list<
-    boost::vecS            // edge list
-  , boost::vecS            // vertex list
-  , boost::undirectedS     // directedness
-  , float                  // property associated with vertices
-  >
-Graph;
 
 
-void perform_scc(char *argv[], Basic& graph, int world_rank)   //Shared memory scc
+
+void perform_scc(char *argv[], Basic& basic, Graph& graph, int world_rank)   //Shared memory scc
 {
-	char file1[100]="input/distributed/inputgraph";
-	char file2[100]="input/distributed/sccmap";
-	char file3[100]="input/distributed/change";
+	
 
 	// char file1[100]="input/inputgraph";
 	// char file2[100]="input/sccinput";
@@ -32,31 +23,31 @@ void perform_scc(char *argv[], Basic& graph, int world_rank)   //Shared memory s
 	int nodes=11;
 
 	//scc(file1,file2,file3,p,nodes,argv);
-	if(world_rank==0)
-	{
-		set<int> single_component;
-		single_component.insert({1,2,3});
-		graph.local_scc.push_back(single_component);
-	}
-	if(world_rank==1)
-	{
-		set<int> single_component;
-		single_component.insert({4,5,6});
-		graph.local_scc.push_back(single_component);
-	}
-	if(world_rank==2)
-	{
-		set<int> single_component;
-		single_component.insert({7,8,6});
-		graph.local_scc.push_back(single_component);
-	}
+	// if(world_rank==0)
+	// {
+	// 	set<int> single_component;
+	// 	single_component.insert({1,2,3});
+	// 	basic.local_scc.push_back(single_component);
+	// }
+	// if(world_rank==1)
+	// {
+	// 	set<int> single_component;
+	// 	single_component.insert({4,5,6});
+	// 	basic.local_scc.push_back(single_component);
+	// }
+	// if(world_rank==2)
+	// {
+	// 	set<int> single_component;
+	// 	single_component.insert({7,8,6});
+	// 	basic.local_scc.push_back(single_component);
+	// }
 	//Store in sets into boost disjoint sets 
 	// int count=0, parent;
-	// for(int i=0;i<graph.local_scc.size();i++)
+	// for(int i=0;i<basic.local_scc.size();i++)
 	// {
 	//   count=0;
 	//   cout <<"Set "<< i<<" :";
-	//   for(set<int> :: iterator it = graph.local_scc[i].begin(); it != graph.local_scc[i].end();++it)
+	//   for(set<int> :: iterator it = basic.local_scc[i].begin(); it != basic.local_scc[i].end();++it)
 	//   {
 	//     if(count==0)
 	//     {
@@ -79,32 +70,31 @@ void perform_scc(char *argv[], Basic& graph, int world_rank)   //Shared memory s
 	// }
 
 	//Boost SCC
-	Graph c (4);
-	boost::add_edge (1, 5, c);  
-	boost::add_edge (5, 2, c);
-	boost::add_edge (2, 4, c);
-	boost::add_edge (4, 1, c);
+	// boost::add_edge (1, 5, graph);  
+	// boost::add_edge (5, 2, graph);
+	// boost::add_edge (2, 4, graph);
+	// boost::add_edge (4, 1, graph);
 
-	boost::add_edge (0, 6, c);  
-	boost::add_edge (6, 3, c);
-	boost::add_edge (3, 7, c);
-	boost::add_edge (7, 0, c);
+	// boost::add_edge (0, 6, graph);  
+	// boost::add_edge (6, 3, graph);
+	// boost::add_edge (3, 7, graph);
+	// boost::add_edge (7, 0, graph);
 
-	boost::add_edge (8, 9, c);  
-	boost::add_edge (9, 10, c);
-	boost::add_edge (10, 8, c);
+	// boost::add_edge (8, 9, graph);  
+	// boost::add_edge (9, 10, graph);
+	// boost::add_edge (10, 8, graph);
 	
 
-	vector<int> component (boost::num_vertices (c));
-	size_t num_components = boost::connected_components (c, &component[0]);
+	
+	size_t num_components = boost::connected_components (graph, &basic.local_scc[0]);
 
-	for (size_t i = 0; i < boost::num_vertices (c); ++i)
-    	cout << component[i] << " ";
+	// for (size_t i = 0; i < boost::num_vertices (graph); ++i)
+ //    	cout << component[i] << " ";
 
 }
 
 
-void disjoint_union(Basic& graph, int world_rank)
+void disjoint_union(Basic& basic, int world_rank)
 {
 
 

@@ -8,7 +8,7 @@
 using namespace std;
 
 
-void read_partitions(char *argv[], Basic& graph)
+void read_partitions(char *argv[], Basic& basic, Graph& graph)
 {
 	int vertex=0, part;
 	unordered_set<int> :: iterator itr;
@@ -18,13 +18,13 @@ void read_partitions(char *argv[], Basic& graph)
 	
 	while(file4 >> part)
 	{
-		graph.partition_of_vertex.insert({vertex, part});
+		basic.partition_of_vertex.insert({vertex, part});
 		vertex++;
 	}
 
 }
 
-void read_graph(char *argv[], Basic &graph, int world_rank)
+void read_graph(char *argv[], Basic &basic, Graph& graph, int world_rank)
 {
 	int vertex, temp=0, edge_count=0, v1,v2;
 	
@@ -44,22 +44,24 @@ void read_graph(char *argv[], Basic &graph, int world_rank)
 			v2=vertex;
 			//cout<<v1<<" "<<v2<<" "<<partition_of_vertex.at(v1)<<" "<<partition_of_vertex.at(v2)<<"\n";
 
-			if(graph.partition_of_vertex.at(v1) != graph.partition_of_vertex.at(v2))  //Edge across partitions
+			if(basic.partition_of_vertex.at(v1) != basic.partition_of_vertex.at(v2))  //Edge across partitions
 			{
 				//cout<<world_rank<<endl;
 				//Here we allocate an edge to the two processes that holds the vertices
-				if(world_rank == graph.partition_of_vertex.at(v1) or world_rank == graph.partition_of_vertex.at(v2))
+				if(world_rank == basic.partition_of_vertex.at(v1) or world_rank == basic.partition_of_vertex.at(v2))
 				{
 					vector<int> edge;
 					edge.push_back(v1);
 					edge.push_back(v2);
-					graph.allocated_graph.push_back(edge);
+					basic.allocated_graph.push_back(edge);
+
+					boost::add_edge (v1, v2, graph);  //boost graph
 
 					//mark mirror nodes
-					if(world_rank == graph.partition_of_vertex.at(v1))
-						graph.mirror_vertices.insert(v2);
-					else if(world_rank == graph.partition_of_vertex.at(v2))
-						graph.mirror_vertices.insert(v1);
+					if(world_rank == basic.partition_of_vertex.at(v1))
+						basic.mirror_vertices.insert(v2);
+					else if(world_rank == basic.partition_of_vertex.at(v2))
+						basic.mirror_vertices.insert(v1);
 
 				}
 									
@@ -68,13 +70,15 @@ void read_graph(char *argv[], Basic &graph, int world_rank)
 			{
 
 				//Here we allocate an edge only to the process that holds both the vertices
-				if(world_rank == graph.partition_of_vertex.at(v1))
+				if(world_rank == basic.partition_of_vertex.at(v1))
 				{
 
 					vector<int> edge;
 					edge.push_back(v1);
 					edge.push_back(v2);
-					graph.allocated_graph.push_back(edge);
+					basic.allocated_graph.push_back(edge);
+
+					boost::add_edge (v1, v2, graph);   //boost graph
 				}
 
 			}
@@ -89,11 +93,14 @@ void read_graph(char *argv[], Basic &graph, int world_rank)
 
 	}
 
+	local_size=boost::num_vertices (graph);
+	basic.local_scc.reserve(local_size);
+
 	
 
 }
 
-void display(Basic &graph, int world_rank)
+void display(Basic &basic, Graph &graph, int world_rank)
 {
 	// for(int i=0;i<np;i++)
 	// {
@@ -108,9 +115,9 @@ void display(Basic &graph, int world_rank)
 	//unordered_set<int>::iterator it;
 
 	//Display allocated graph for specific partition
-	// if(world_rank==2)
+	// if(world_rank==0)
 	// {
-	// 	for(row=allocated_graph.begin(); row<allocated_graph.end(); row++)
+	// 	for(row=basic.allocated_graph.begin(); row<basic.allocated_graph.end(); row++)
 	// 	{
 	// 		cout<<endl;
 	// 		for(col = row->begin(); col != row->end(); col++)
@@ -121,12 +128,16 @@ void display(Basic &graph, int world_rank)
 	// }
 
 	//Display mirrors for specific partition
-	if(world_rank==0)
-	{
-		for(auto it=graph.mirror_vertices.begin(); it!=graph.mirror_vertices.end(); it++)
-			cout<<*it<<" ";
+	// if(world_rank==0)
+	// {
+	// 	for(auto it=basic.mirror_vertices.begin(); it!=basic.mirror_vertices.end(); it++)
+	// 		cout<<*it<<" ";
 
-	}
+	// }
+
+	//Display local SCC
+	for (size_t i = 0; i < boost::num_vertices (graph); ++i)
+    	cout << basic.local_scc[i] << " ";
 	
 }
 

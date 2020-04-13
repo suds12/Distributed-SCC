@@ -3,6 +3,7 @@
 #include <set>
 #include <map> 
 #include <vector>
+#include <boost/graph/adjacency_list.hpp>
 
 
 class Basic
@@ -12,8 +13,17 @@ public:
 	map<int, int> partition_of_vertex; //Hashmap of partition id for each vertex
 	unordered_set<int> mirror_vertices;  //vector of sets. Each row of vector is a set of mirror vertices for that partition
 	vector<vector<int>> allocated_graph;
-	vector<set<int>> local_scc;
-
+	//vector<set<int>> local_scc;
+	vector<int>local_scc;
 
 };
+
+typedef
+  boost::adjacency_list<
+    boost::vecS            // edge list
+  , boost::vecS            // vertex list
+  , boost::undirectedS     // directedness
+  , float                  // property associated with vertices
+  >
+Graph;
 
