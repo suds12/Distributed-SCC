@@ -208,15 +208,7 @@ void display(Basic &basic, Graph &graph, int world_rank)
 		}
 	}
 
-	// if(world_rank ==0)
-	// {
-	// 	for(int i=0;i<12;i++)
-	// 		{
-	// 			cout<<global_scc.find_set(i);
-	// 		}
-		
-	// }
-
+	
 
 
 	//Display local SCC

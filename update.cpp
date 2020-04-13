@@ -135,18 +135,29 @@ void perform_scc(char *argv[], Basic& basic, Graph& graph, int world_rank)   //S
 
 void disjoint_union(Basic& basic, int world_rank)
 {
+	int root;
 	//Find intersection of new mirrors with each SCC
 	cout<<basic.l_scc.size();
 	for(int it=0;it<basic.l_scc.size();it++)
 	{
 		basic.merge_detail.push_back(std::vector<int>());
+		
+		root= *basic.l_scc[it].begin();   //Some random element chosen from the set. Used as parent of the set when merging and sent along with inrtersections
+		basic.merge_detail[it].push_back(root); //First element of the row vector is root followed by intersections.
 		for (auto element = basic.mirror_vertices.begin(); element != basic.mirror_vertices.end();element++) 
 		{
 		  if (basic.l_scc[it].find(*element) != basic.l_scc[it].end()) 
 		  {
-		    basic.intersection_set.push_back(*element);
+		    //basic.intersection_set.push_back(*element);
 		    basic.merge_detail[it].push_back(*element);
 		  }
+		  else
+		  {
+		  	//Remove if there are no intersections 
+		  	basic.merge_detail[it].pop_back();
+		  	basic.merge_detail.pop_back();
+		  }
+
 		}
 	}
 
