@@ -115,11 +115,22 @@ void perform_scc(char *argv[], Basic& basic, Graph& graph, int world_rank)   //S
 		}
 		
 	}
+	int cols=0;
 	for(int i=0;i<basic.temp_scc.size();i++)
 	{
 		if(!basic.temp_scc[i].empty())
+		{
 			basic.l_scc.push_back(basic.temp_scc[i]);
+			if(basic.temp_scc[i].size()>cols)
+				cols=basic.temp_scc[i].size();
+		}
 	}
+
+
+	
+	basic.ncols=cols;
+	basic.nrows=basic.temp_scc.size();
+	
 	// for(int it=0;it<basic.l_scc.size();it++)
 	// {
 	// 	cout<<it<<" : ";
@@ -133,41 +144,57 @@ void perform_scc(char *argv[], Basic& basic, Graph& graph, int world_rank)   //S
 }
 
 
+
+
 void disjoint_union(Basic& basic, int world_rank)
 {
-	int root,count=0;
+	int root,temp,count=0;
+	ofstream l_scc_dump("dump/l_scc_" + std::to_string(world_rank) + ".txt");
+
+	
+	basic.alloc_2d_init(basic.nrows,basic.ncols);
 	//Find intersection of new mirrors with each SCC
-	cout<<basic.l_scc.size();
 	for(int it=0;it<basic.l_scc.size();it++)
-	{
-		basic.merge_detail.push_back(std::vector<int>());
-		
+	{	
 		root= *basic.l_scc[it].begin();   //Some random element chosen from the set. Used as parent of the set when merging and sent along with inrtersections
-		root=-root;
-		basic.merge_detail[it].push_back(root); //First element of the row vector is root followed by intersections.
+		//basic.merge_detail[it].push_back(root); //First element of the row vector is root followed by intersections.
 		for (auto element = basic.mirror_vertices.begin(); element != basic.mirror_vertices.end();element++) 
 		{
+		temp=0;	
 		  if (basic.l_scc[it].find(*element) != basic.l_scc[it].end()) 
 		  {
 		    //basic.intersection_set.push_back(*element);
 		    basic.merge_detail[it].push_back(*element);
+		    basic.detail[it][temp]= *element;
 		    count++;//For bookeeping
+		    temp++;
 		  }
 		}
 	}
 
 	int buffer2[2];
-	MPI_Request request;
+	//MPI_Request request;
 	
 	//Remove this from timing as I would implicitly be storing 2d vectors as a flattened array. Those are much better for MPI communication
-	int* details = new int[count];
-	for(int i=0;i<basic.merge_detail.size();i++)
+	
+	for(int i=0;i<basic.nrows;i++)
 	{
-		std::copy(basic.merge_detail[i].begin(), basic.merge_detail[i].end(), details);
+		cout<<endl<<"** "<<;
+		for(int j=0;j<basic.ncols;j++)
+			cout<<basic.detail[i][j]<<" ";
 	}
 
 	if(world_rank==1)
-		MPI_Isend(&details[0], count, MPI_INT, 0, 123, MPI_COMM_WORLD, &request);
+	{
+		for(int i=0;i<basic.nrows;i++)
+		{
+			cout<<endl;
+			for(int j=0;j<basic.ncols;j++)
+				cout<<basic.detail[i][j]<<" ";
+		}
+	}
+		//MPI_Send(basic.detail, count, MPI_INT, 0, 123, MPI_COMM_WORLD);
+		//MPI_Wait(&request, &status);
 	
 }
 

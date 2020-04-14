@@ -8,6 +8,7 @@
 #include <boost/graph/adjacency_list.hpp>
 
 
+
 class Basic
 {
 public:
@@ -22,11 +23,26 @@ public:
 	unordered_set<int> relevant_vertices;
 	vector<int> intersection_set;
 	vector<vector<int>>merge_detail;
-	unordered_map<int, int> parent_scc;
+	unordered_map<int, int> parent_scc; 
+	int** detail;
 	int iteration;
+	int nrows; //Number of SCCs
+	int ncols;  //Size of biggest SCC
 
+	void alloc_2d_init(int rows, int cols);
+	
 
 };
+
+void Basic::alloc_2d_init(int rows, int cols)
+	{
+	    int *data = (int *)malloc(rows*cols*sizeof(int));
+	    int **array= (int **)malloc(rows*sizeof(int*));
+	    for (int i=0; i<rows; i++)
+	        array[i] = &(data[cols*i]);
+
+	    detail=array;
+	}
 
 typedef
   boost::adjacency_list<

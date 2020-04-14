@@ -138,7 +138,7 @@ void merge_ds(char *argv[], Basic &basic, Graph& graph, int world_rank)
 					}
 					else
 					{
-						cout<<basic.parent_scc.at(X)<<" "<<vertex<<endl;
+						//cout<<basic.parent_scc.at(X)<<" "<<vertex<<endl;
 						global_scc.union_set(basic.parent_scc.at(X), vertex);
 					}
 
@@ -150,19 +150,20 @@ void merge_ds(char *argv[], Basic &basic, Graph& graph, int world_rank)
 		}
 
 		
-		int *details;
+		//int *details;
 		int MAX_NUMBERS=100;
+		int* details = new int[MAX_NUMBERS];
 		MPI_Request request;
 		MPI_Status status;
 
 		// for(i=0;i<argv[7];i++)
 		// {
-			MPI_Irecv(&details[0], MAX_NUMBERS, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &request);
-			MPI_Wait(&request, &status);
-			for(int i=0;i<20;i++)
-			{
-				cout<<"*"<<i;
-			}
+			//MPI_Irecv(details, MAX_NUMBERS, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &request);
+			//MPI_Wait(&request, &status);
+			// for(int i=0;i<20;i++)
+			// {
+			// 	cout<<"*"<<i;
+			// }
 			
 		//}
 	}
@@ -175,7 +176,7 @@ void display(Basic &basic, Graph &graph, int world_rank)
 	ofstream rel_dump("dump/rel_" + std::to_string(world_rank) + ".txt");
 	ofstream inter_dump("dump/int_" + std::to_string(world_rank) + ".txt");
 	ofstream mirror_dump("dump/mir_" + std::to_string(world_rank) + ".txt");
-	ofstream l_scc_dump("dump/l_scc_" + std::to_string(world_rank) + ".txt");
+	//ofstream l_scc_dump("dump/l_scc_" + std::to_string(world_rank) + ".txt");
 
 	// for(int i=0;i<np;i++)
 	// {
@@ -218,13 +219,13 @@ void display(Basic &basic, Graph &graph, int world_rank)
 	// for (size_t i = 0; i < boost::num_vertices (graph); ++i)
  //    	cout << basic.local_scc[i] << " ";
 	//Display local merge details
-	for(int it=0;it<basic.l_scc.size();it++)
-	{
-		l_scc_dump<<it<<" : ";
-		for(auto itr=basic.l_scc[it].begin(); itr!=basic.l_scc[it].end();itr++)
-			l_scc_dump<<*itr<<" ";
-		l_scc_dump<<endl;
-	}
+	// for(int it=0;it<basic.l_scc.size();it++)
+	// {
+	// 	l_scc_dump<<it<<" : ";
+	// 	for(auto itr=basic.l_scc[it].begin(); itr!=basic.l_scc[it].end();itr++)
+	// 		l_scc_dump<<*itr<<" ";
+	// 	l_scc_dump<<endl;
+	// }
 	//Display local merge details
 	for(int it=0;it<basic.merge_detail.size();it++)
 	{

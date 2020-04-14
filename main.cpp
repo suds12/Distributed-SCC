@@ -15,6 +15,7 @@ vector<set <int> > sccSets;
 int world_rank, world_size, local_size;
 
 
+
 int main(int argc, char *argv[])
 {
     
@@ -30,6 +31,8 @@ int main(int argc, char *argv[])
 
     //shared_scc(argc, argv);
     //Reader r1;
+  
+
     Basic basic;
     Graph graph (11);
     read_partitions(argv,basic,graph);
