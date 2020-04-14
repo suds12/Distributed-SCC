@@ -36,12 +36,13 @@ int main(int argc, char *argv[])
     Basic basic;
     Graph graph (11);
     read_partitions(argv,basic,graph);
-    merge_ds(argv,basic,graph,world_rank);
+    
     // Update u1
     // u1.read_partitions(argv);
     read_graph(argv,basic,graph,world_rank);
     perform_scc(argv,basic,graph,world_rank);
     disjoint_union(basic,world_rank);
+    merge_ds(argv,basic,graph,world_rank);
 
     
     
