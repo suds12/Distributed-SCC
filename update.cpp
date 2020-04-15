@@ -15,78 +15,11 @@
 void perform_scc(char *argv[], Basic& basic, Graph& graph, int world_rank)   //Shared memory scc
 {
 	
-
-	// char file1[100]="input/inputgraph";
-	// char file2[100]="input/sccinput";
-	// char file3[100]="input/changes";
 	int p = 1;
 	int nodes=11;
 
-	//scc(file1,file2,file3,p,nodes,argv);
-	// if(world_rank==0)
-	// {
-	// 	set<int> single_component;
-	// 	single_component.insert({1,2,3});
-	// 	basic.local_scc.push_back(single_component);
-	// }
-	// if(world_rank==1)
-	// {
-	// 	set<int> single_component;
-	// 	single_component.insert({4,5,6});
-	// 	basic.local_scc.push_back(single_component);
-	// }
-	// if(world_rank==2)
-	// {
-	// 	set<int> single_component;
-	// 	single_component.insert({7,8,6});
-	// 	basic.local_scc.push_back(single_component);
-	// }
-	//Store in sets into boost disjoint sets 
-	// int count=0, parent;
-	// for(int i=0;i<basic.local_scc.size();i++)
-	// {
-	//   count=0;
-	//   cout <<"Set "<< i<<" :";
-	//   for(set<int> :: iterator it = basic.local_scc[i].begin(); it != basic.local_scc[i].end();++it)
-	//   {
-	//     if(count==0)
-	//     {
-	//       parent=*it;
-	//       ds.make_set(*it);
-	      
-	//     }
-	//     else
-	//     {
-	//       ds.make_set(*it);
-	//       ds.union_set(parent,*it);
-	//     }
-	     
-	//      cout<<" " <<*it;
-
-	//      count++;
-	//   }
-	//   cout <<"\n";
-
-	// }
-
-	//Boost SCC
-	// boost::add_edge (1, 5, graph);  
-	// boost::add_edge (5, 2, graph);
-	// boost::add_edge (2, 4, graph);
-	// boost::add_edge (4, 1, graph);
-
-	// boost::add_edge (0, 6, graph);  
-	// boost::add_edge (6, 3, graph);
-	// boost::add_edge (3, 7, graph);
-	// boost::add_edge (7, 0, graph);
-
-	// boost::add_edge (8, 9, graph);  
-	// boost::add_edge (9, 10, graph);
-	// boost::add_edge (10, 8, graph);
-	
-
-	
-	size_t num_components = boost::connected_components (graph, &basic.local_scc[0]);
+	//Replace this with function call for shared SCC (From Sriram). Tha input parameters would be the allocated graph and SCC mapping. Output is a vector of sets
+	size_t num_components = boost::connected_components (graph, &basic.local_scc[0]); //output to local_scc
 
 	// for (size_t i = 0; i < boost::num_vertices (graph); ++i)
  //    	cout << component[i] << " ";
@@ -148,27 +81,30 @@ void perform_scc(char *argv[], Basic& basic, Graph& graph, int world_rank)   //S
 
 void disjoint_union(Basic& basic, int world_rank)
 {
-	int root,temp,count=0;
-	ofstream l_scc_dump("dump/l_scc_" + std::to_string(world_rank) + ".txt");
+	if (world_rank==1)
+	{
+		int root,temp=0,count=0;
+		ofstream l_scc_dump("dump/l_scc_" + std::to_string(world_rank) + ".txt");
 
-	
-	basic.alloc_2d_init(basic.nrows,basic.ncols);
-	//Find intersection of new mirrors with each SCC
-	for(int it=0;it<basic.l_scc.size();it++)
-	{	
-		root= *basic.l_scc[it].begin();   //Some random element chosen from the set. Used as parent of the set when merging and sent along with inrtersections
-		//basic.merge_detail[it].push_back(root); //First element of the row vector is root followed by intersections.
-		for (auto element = basic.mirror_vertices.begin(); element != basic.mirror_vertices.end();element++) 
-		{
-		temp=0;	
-		  if (basic.l_scc[it].find(*element) != basic.l_scc[it].end()) 
-		  {
-		    //basic.intersection_set.push_back(*element);
-		    basic.merge_detail[it].push_back(*element);
-		    basic.detail[it][temp]= *element;
-		    count++;//For bookeeping
-		    temp++;
-		  }
+		
+		basic.alloc_2d_init(basic.nrows,basic.ncols);
+		//Find intersection of new mirrors with each SCC
+		for(int it=0;it<basic.l_scc.size();it++)
+		{	
+			root= *basic.l_scc[it].begin();   //Some random element chosen from the set. Used as parent of the set when merging and sent along with inrtersections
+			//basic.merge_detail[it].push_back(root); //First element of the row vector is root followed by intersections.
+			temp=0;	
+			for (auto element = basic.mirror_vertices.begin(); element != basic.mirror_vertices.end();element++) 
+			{
+			  if (basic.l_scc[it].find(*element) != basic.l_scc[it].end()) 
+			  {
+			    //basic.intersection_set.push_back(*element);
+			    basic.detail[it][temp]= *element;
+			 
+			    count++;//For bookeeping
+			    temp++;
+			  }
+			}
 		}
 	}
 
@@ -177,12 +113,11 @@ void disjoint_union(Basic& basic, int world_rank)
 	
 	//Remove this from timing as I would implicitly be storing 2d vectors as a flattened array. Those are much better for MPI communication
 	
-	for(int i=0;i<basic.nrows;i++)
-	{
-		cout<<endl<<"** "<<;
-		for(int j=0;j<basic.ncols;j++)
-			cout<<basic.detail[i][j]<<" ";
-	}
+	// for(int i=0;i<basic.nrows;i++)
+	// {
+	// 	for(int j=0;j<basic.ncols;j++)
+	// 		cout<<basic.detail[i][j]<<" ";
+	// }
 
 	if(world_rank==1)
 	{

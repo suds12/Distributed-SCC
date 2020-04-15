@@ -8,7 +8,7 @@
 
 using namespace std;
 
-
+//This function reads the partition id for each vertex from the partition file. The global_SCC disjoint set is also allocated here. Each
 void read_partitions(char *argv[], Basic& basic, Graph& graph)
 {
 	int vertex=0, part;
@@ -21,14 +21,15 @@ void read_partitions(char *argv[], Basic& basic, Graph& graph)
 	{
 		//Create initial disjoint set only on root process
 		if(world_rank==0)
-			global_scc.make_set(vertex);
+			global_scc.make_set(vertex); 
 
-		basic.partition_of_vertex.insert({vertex, part});
+		basic.partition_of_vertex.insert({vertex, part});  //Use hashmaps to store which partition each vertex belongs to
 		vertex++;
 	}
 
 }
 
+//Function for reading the graph. Each process reads only the edges it is allocated by looking up at the partition hash map
 void read_graph(char *argv[], Basic &basic, Graph& graph, int world_rank)
 {
 	int vertex, temp=0, edge_count=0, v1,v2;
@@ -36,7 +37,7 @@ void read_graph(char *argv[], Basic &basic, Graph& graph, int world_rank)
 
 	ifstream file1 (argv[1]); if (!file1.is_open() ) { cout<<"INPUT ERROR:: Could not open file 1 "<<world_rank;}
 
-	while(file1 >> vertex)
+	while(file1 >> vertex) 
 	{
 		if(temp == 0 )    // Reading vertex1 of edge
 		{
@@ -51,7 +52,6 @@ void read_graph(char *argv[], Basic &basic, Graph& graph, int world_rank)
 
 			if(basic.partition_of_vertex.at(v1) != basic.partition_of_vertex.at(v2))  //Edge across partitions
 			{
-				//cout<<world_rank<<endl;
 				//Here we allocate an edge to the two processes that holds the vertices
 				if(world_rank == basic.partition_of_vertex.at(v1) or world_rank == basic.partition_of_vertex.at(v2))
 				{
@@ -60,8 +60,8 @@ void read_graph(char *argv[], Basic &basic, Graph& graph, int world_rank)
 					edge.push_back(v2);
 					basic.allocated_graph.push_back(edge);
 
-					boost::add_edge (v1, v2, graph);  //boost graph
-					//Additional booking. Don't time
+					boost::add_edge (v1, v2, graph);  //Storing in boost ajacency list. This is a different structure from allocated_graph[][].
+					//Additional bookeeping. Don't time
 					basic.relevant_vertices.insert(v1);
 					basic.relevant_vertices.insert(v2);
 
@@ -130,7 +130,7 @@ void merge_ds(char *argv[], Basic &basic, Graph& graph, int world_rank)
 					temp++;
 					continue;
 				}
-				if(temp==1)
+				if(temp==1) //Reading SCC map
 				{
 					if(basic.parent_scc.find(X) == basic.parent_scc.end())
 					{
@@ -153,8 +153,8 @@ void merge_ds(char *argv[], Basic &basic, Graph& graph, int world_rank)
 		//int *details;
 		int MAX_NUMBERS=100;
 		int* details = new int[MAX_NUMBERS];
-		MPI_Request request;
-		MPI_Status status;
+		//MPI_Request request;
+		//MPI_Status status;
 
 		// for(i=0;i<argv[7];i++)
 		// {
@@ -164,8 +164,19 @@ void merge_ds(char *argv[], Basic &basic, Graph& graph, int world_rank)
 			// {
 			// 	cout<<"*"<<i;
 			// }
-			
+		// //The union operation for disjoint sets
+			// int parent;
+			// for(int i=0;i<max_rows;i++)
+			// {
+				// 	parent=details[i][0];
+				// 	for(int j=0;j<max_cols;j++)
+				// 	{
+				// 		global_scc.union_set(parent,details[i][j]);
+				// 	}
+			// }
 		//}
+
+
 	}
 
 }
