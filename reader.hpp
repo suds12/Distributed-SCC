@@ -32,6 +32,7 @@ void read_partitions(char *argv[], Basic& basic, Graph& graph)
 //Function for reading the graph. Each process reads only the edges it is allocated by looking up at the partition hash map
 void read_graph(char *argv[], Basic &basic, Graph& graph, int world_rank)
 {
+	ofstream grap("orkut_ce" + std::to_string(world_rank) + ".txt");	
 	int vertex, temp=0, edge_count=0, v1,v2;
 	
 
@@ -42,14 +43,14 @@ void read_graph(char *argv[], Basic &basic, Graph& graph, int world_rank)
 		if(temp == 0 )    // Reading vertex1 of edge
 		{
 			v1=vertex;
+			grap<<v1<<" ";
 			temp++;
 			continue;
 		}
 		if(temp == 1)	// Reading vertex2 of edge
 		{
 			v2=vertex;
-
-
+			grap<<v2<<endl;
 			if(basic.partition_of_vertex.at(v1) != basic.partition_of_vertex.at(v2))  //Edge across partitions
 			{
 				//Here we allocate an edge to the two processes that holds the vertices

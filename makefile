@@ -17,4 +17,4 @@ run1:
 	$(run) -np 1 ./main input/inputgraph input/sccinput input/changes 5 1 input/distributed/partition 3	
 
 sp:
-	$(run) -np 1 ./main input/distributed/inputgraph input/distributed/sccmap input/distributed/changes 11 1 input/distributed/partition1 1
+	$(run) -np 1 ./main /home/users/ssriniv2/sudarhsaninput/orkutce100m100i input/distributed/sccmap input/distributed/changes 11 1 input/distributed/partition1 1
