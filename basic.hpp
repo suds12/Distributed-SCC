@@ -50,7 +50,7 @@ typedef
   boost::adjacency_list<
     boost::vecS            // edge list
   , boost::vecS            // vertex list
-  , boost::undirectedS     // directedness
+  , boost::directedS     // directedness
   , float                  // property associated with vertices
   >
 Graph;
