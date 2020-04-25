@@ -32,7 +32,6 @@ void read_partitions(char *argv[], Basic& basic, Graph& graph)
 //Function for reading the graph. Each process reads only the edges it is allocated by looking up at the partition hash map
 void read_graph(char *argv[], Basic &basic, Graph& graph, int world_rank)
 {
-	ofstream grap("orkut_ce" + std::to_string(world_rank) + ".txt");	
 	int vertex, temp=0, edge_count=0, v1,v2;
 	
 
@@ -43,14 +42,12 @@ void read_graph(char *argv[], Basic &basic, Graph& graph, int world_rank)
 		if(temp == 0 )    // Reading vertex1 of edge
 		{
 			v1=vertex;
-			grap<<v1<<" ";
 			temp++;
 			continue;
 		}
 		if(temp == 1)	// Reading vertex2 of edge
 		{
 			v2=vertex;
-			grap<<v2<<endl;
 			if(basic.partition_of_vertex.at(v1) != basic.partition_of_vertex.at(v2))  //Edge across partitions
 			{
 				//Here we allocate an edge to the two processes that holds the vertices
@@ -62,16 +59,21 @@ void read_graph(char *argv[], Basic &basic, Graph& graph, int world_rank)
 					basic.allocated_graph.push_back(edge);
 
 					boost::add_edge (v1, v2, graph);  //Storing in boost ajacency list. This is a different structure from allocated_graph[][].
-					//Additional bookeeping. Don't time
-					basic.relevant_vertices.insert(v1);
-					basic.relevant_vertices.insert(v2);
 
-
-					//mark mirror nodes
+					//store border vertices and store the vertices a specific border vertex has outgoing edges to. This is stored seperately and is only used for merging. Not included while performing local SCC.
 					if(world_rank == basic.partition_of_vertex.at(v1))
-						basic.mirror_vertices.insert(v2);
-					else if(world_rank == basic.partition_of_vertex.at(v2))
-						basic.mirror_vertices.insert(v1);
+					{
+						if(basic.border_out_vertices.find(v1) == basic.border_out_vertices.end())//border vertex not yet added 
+						{
+							vector<int> borders;
+							borders.push_back(v2);
+							basic.border_out_vertices.insert({v1, borders});
+						}
+						else //border vertex already exists. Push oppopsite vertex to vector mapped with border vertex
+						{
+							basic.border_out_vertices[v1].push_back(v2);
+						}
+					}
 
 				}
 									
@@ -87,9 +89,6 @@ void read_graph(char *argv[], Basic &basic, Graph& graph, int world_rank)
 					edge.push_back(v1);
 					edge.push_back(v2);
 					basic.allocated_graph.push_back(edge);
-					//Additional booking. Don't time
-					basic.relevant_vertices.insert(v1);
-					basic.relevant_vertices.insert(v2);
 
 					boost::add_edge (v1, v2, graph);   //boost graph
 				}
@@ -110,6 +109,110 @@ void read_graph(char *argv[], Basic &basic, Graph& graph, int world_rank)
 	basic.local_scc.reserve(local_size);
 
 	
+
+}
+
+void read_changes(char *argv[], Basic &basic, Graph& changes, Graph& graph, int world_rank)
+{
+	int vertex, temp=0, edge_count=0, v1,v2;
+	
+
+	ifstream file3 (argv[3]); if (!file3.is_open() ) { cout<<"INPUT ERROR:: Could not open file 3 "<<world_rank;}
+
+	while(file3 >> vertex) 
+	{
+		if(temp == 0 )    // Reading vertex1 of edge
+		{
+			v1=vertex;
+			temp++;
+			continue;
+		}
+		if(temp == 1)	// Reading vertex2 of edge
+		{
+			v2=vertex;
+			if(basic.partition_of_vertex.at(v1) != basic.partition_of_vertex.at(v2))  //Edge across partitions
+			{
+				//Here we would not allocate that edge but just mark the vertices as border vertices at both the respective partitions.
+				if(world_rank == basic.partition_of_vertex.at(v1) or world_rank == basic.partition_of_vertex.at(v2))
+				{
+					// vector<int> edge;
+					// edge.push_back(v1);
+					// edge.push_back(v2);
+					// basic.allocated_changes.push_back(edge);
+
+					// boost::add_edge (v1, v2, Change);  //Storing in boost ajacency list. This is a different structure from allocated_changes[][].
+
+					//store border vertices and store the vertices a specific border vertex has outgoing edges to. This is stored seperately and is only used for merging. Not included while performing local SCC.
+					if(world_rank == basic.partition_of_vertex.at(v1))
+					{
+						if(basic.border_out_vertices.find(v1) == basic.border_out_vertices.end())//border vertex not yet added 
+						{
+							vector<int> borders;
+							borders.push_back(v2);
+							basic.border_out_vertices.insert({v1, borders});
+						}
+						else //border vertex already exists. Push oppopsite vertex to vector mapped with border vertex
+						{
+							basic.border_out_vertices[v1].push_back(v2);
+						}
+					}
+
+				}
+									
+			}
+			else//Edge within the same partition. 
+			{
+
+				//Here we allocate an edge only to the process that holds both the vertices
+				if(world_rank == basic.partition_of_vertex.at(v1))
+				{
+
+					vector<int> edge;
+					edge.push_back(v1);
+					edge.push_back(v2);
+					basic.allocated_changes.push_back(edge);
+
+					boost::add_edge (v1, v2, changes);   //boost graph
+
+					/*For now the changes are also added to the original graph as boost scc doesn't perform dynamic changes and it recomputes.
+					When boost is replaced by the dynamic shared scc, I would feed the input as two seperate files for changes and input. 
+					This line will be removed then*/  
+					boost::add_edge (v1, v2, graph);  
+					
+				}
+
+			}
+			temp=2;
+			continue;
+		}
+		if(temp == 2)//Only insertion for now. So assume this column is 1 and skip over. When deletion is introduced, we need to check this column first and act accordingly
+		{
+			temp=0;
+			continue;
+		}
+	}
+}
+
+void read_sccmap(char *argv[], Basic &basic, int world_rank)
+{
+	int temp=0, vertex, X;
+	ifstream file2 (argv[2]); if (!file2.is_open() ) { cout<<"INPUT ERROR:: Could not open file 2 ";}
+
+	while(file2 >> X)
+	{
+		if(temp == 0) //Read vertex in column 1
+		{
+			vertex = X;
+			temp=1;
+			continue;
+		}
+		if(temp == 1) //Read its respective SCC in column 2 and store it in a hash map
+		{
+			basic.init_scc_of_vertex.insert({vertex, X}); 
+			temp=0;
+			continue;
+		}
+	}
 
 }
 
@@ -216,13 +319,18 @@ void display(Basic &basic, Graph &graph, int world_rank)
 	// }
 
 	//Display mirrors for specific partition
-	if(world_rank==0)
-	{
-		for(auto it=basic.mirror_vertices.begin(); it!=basic.mirror_vertices.end(); it++)
-		{
-			mirror_dump<<*it<<" ";
-		}
-	}
+	// if(world_rank==0)
+	// {
+	// 	for(auto it : border_out_vertices)
+	// 	{
+	// 		for(auto i : it.second)
+	// 		{
+	// 			mirror_dump<<basic.border_out_vertices[*it][*i]<<" ";
+	// 		}
+	// 	}
+	// }
+	for(auto it : basic.border_out_vertices[3])
+		cout<<it<<" ";
 
 	
 
@@ -247,10 +355,10 @@ void display(Basic &basic, Graph &graph, int world_rank)
 		scc_dump<<endl;
 	}
 	//Display relevant vertices
-	for(auto it=basic.relevant_vertices.begin(); it!=basic.relevant_vertices.end(); it++)
-	{
-		rel_dump<<*it<<" ";
-	}
+	// for(auto it=basic.relevant_vertices.begin(); it!=basic.relevant_vertices.end(); it++)
+	// {
+	// 	rel_dump<<*it<<" ";
+	// }
 	//Display intersection
 	// for(auto it=basic.intersection_set.begin(); it!=basic.intersection_set.end(); it++)
 	// {

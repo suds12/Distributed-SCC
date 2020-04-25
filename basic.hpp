@@ -17,13 +17,16 @@ class Basic
 public:
 	int np; //number of partitions
 	map<int, int> partition_of_vertex; //Hashmap of partition id for each vertex
-	unordered_set<int> mirror_vertices;  //Hashset of mirror vertices. Each process maintains its own.
-	vector<vector<int>> allocated_graph; //Edge list. Each process maintains its own
+	map<int, int> init_scc_of_vertex; //Hashmap of initial scc id for each vertex. This is read from sccmap file.
+	unordered_set<int> border_vertices;  //Hashset of border vertices. Each process maintains its own.
+	map<int, vector<int>> border_out_vertices; //Hashmap that stores the vertices a specific border vertex has outgoing edges to
+	vector<vector<int>> allocated_graph; //Edge list of partitioned graph. Each process maintains its own
+	vector<vector<int>> allocated_changes; //Edge list of changes. Each process maintains its own
 	//vector<set<int>> local_scc;
 	vector<int>local_scc;  //Vector of component id. Each index corresponds to global vertex id. Each process maintains its own. Hence we need to remove vertices indices it does not own
 	vector<unordered_set<int>>temp_scc;
 	vector<unordered_set<int>>l_scc;
-	unordered_set<int> relevant_vertices; //Hash set of vertices and mirror vertices. Each process maintains its own. Used for removing irrelevent vertices from local_scc
+	//unordered_set<int> relevant_vertices; //Hash set of vertices and mirror vertices. Each process maintains its own. Used for removing irrelevent vertices from local_scc
 	vector<int> intersection_set; 
 	vector<vector<int>>merge_detail; 
 	unordered_map<int, int> parent_scc; //Used for creating SCC on disjoint sets using union find
