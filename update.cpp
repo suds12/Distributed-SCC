@@ -4,7 +4,7 @@
 #include <sstream>
 #include <set>
 #include <boost/graph/adjacency_list.hpp>
-#include <boost/graph/connected_components.hpp>
+#include <boost/graph/strong_components.hpp>
 #include "reader.hpp"
 #include "main_code.cpp"
 
@@ -18,15 +18,68 @@ void perform_scc(char *argv[], Basic& basic, Graph& graph, int world_rank)   //S
 	int p = 1;
 	int nodes=11;
 
-	//Replace this with function call for shared SCC (From Sriram). Tha input parameters would be the allocated graph and SCC mapping. Output is a vector of sets
-	size_t num_components = boost::connected_components (graph, &basic.local_scc[0]); //output to local_scc
+	//Replace this with function call for shared SCC (From Sriram). Tha input parameters would be the allocated graph and SCC mapping. 
+	size_t num_components = boost::strong_components (graph, &basic.local_scc[0]); //output to local_scc
 
-	// for (size_t i = 0; i < boost::num_vertices (graph); ++i)
- //    	cout << component[i] << " ";
+	//Additional conversions. Don't time
+	int temp=0;
+	unordered_set<int> empty;
+	for(int i=0;i<num_components;i++)
+	{
+		basic.temp_scc.push_back(empty);
+	}
+	for(int i=0;i<boost::num_vertices (graph);i++)
+	{
+		//cout<<"**"<<basic.relevant_vertices.count(i)<<" ";
+		if(basic.partition_of_vertex[i]==world_rank)
+		{
+			basic.temp_scc[basic.local_scc[i]].insert(i);
+		}
+		
+	}
+	for(int i=0;i<basic.temp_scc.size();i++)
+	{
+		if(!basic.temp_scc[i].empty())
+			basic.l_scc.push_back(basic.temp_scc[i]);
+	}
+
+
 
 
 }
 
+void make_meta(char *argv[], Basic& basic, Graph& graph, int world_rank)
+{
+	for(int i=0;i<basic.l_scc.size();i++)
+	{
+		int border_count=0, out_count=0;
+		for(auto itr=basic.l_scc[i].begin(); itr!=basic.l_scc[i].end();itr++)
+		{
+			//Add borders from both incoming and outgoing edges to border matrix. 
+			if(basic.border_out_vertices.find(*itr) != basic.border_out_vertices.end())
+			{
+				basic.border_matrix[i][border_count]=*itr;
+				border_count++;
+
+				for(auto item : basic.border_out_vertices.at(*itr))
+				{
+					basic.out_matrix[i][out_count]=item;
+					out_count++;
+				}
+			}
+			if(basic.border_in_vertices.find(*itr) != basic.border_in_vertices.end())
+			{
+				basic.border_matrix[i][border_count]=*itr;
+				border_count++;
+			}
+
+
+
+				
+			
+		}
+	}
+}
 
 
 

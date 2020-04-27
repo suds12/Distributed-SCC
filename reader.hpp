@@ -74,6 +74,21 @@ void read_graph(char *argv[], Basic &basic, Graph& graph, int world_rank)
 							basic.border_out_vertices[v1].push_back(v2);
 						}
 					}
+					//Similarly, store borders of incoming edges in another hashmap
+					if(world_rank == basic.partition_of_vertex.at(v2))
+					{
+						if(basic.border_in_vertices.find(v2) == basic.border_in_vertices.end())
+						{
+							vector<int> borders;
+							borders.push_back(v1);
+							basic.border_in_vertices.insert({v2, borders});
+						}
+						else //border vertex already exists. Push oppopsite vertex to vector mapped with border vertex
+						{
+							basic.border_in_vertices[v2].push_back(v1);
+						}
+
+					}
 
 				}
 									
@@ -155,6 +170,21 @@ void read_changes(char *argv[], Basic &basic, Graph& changes, Graph& graph, int 
 						{
 							basic.border_out_vertices[v1].push_back(v2);
 						}
+					}
+					//Similarly, store borders of incoming edges in another hashmap
+					if(world_rank == basic.partition_of_vertex.at(v2))
+					{
+						if(basic.border_in_vertices.find(v2) == basic.border_in_vertices.end())
+						{
+							vector<int> borders;
+							borders.push_back(v1);
+							basic.border_in_vertices.insert({v2, borders});
+						}
+						else //border vertex already exists. Push oppopsite vertex to vector mapped with border vertex
+						{
+							basic.border_in_vertices[v2].push_back(v1);
+						}
+
 					}
 
 				}
@@ -288,10 +318,10 @@ void merge_ds(char *argv[], Basic &basic, Graph& graph, int world_rank)
 void display(Basic &basic, Graph &graph, int world_rank)
 {
 	ofstream scc_dump("dump/file_no_" + std::to_string(world_rank) + ".txt");
-	ofstream rel_dump("dump/rel_" + std::to_string(world_rank) + ".txt");
+	ofstream out_dump("dump/rel_" + std::to_string(world_rank) + ".txt");
 	ofstream inter_dump("dump/int_" + std::to_string(world_rank) + ".txt");
-	ofstream mirror_dump("dump/mir_" + std::to_string(world_rank) + ".txt");
-	//ofstream l_scc_dump("dump/l_scc_" + std::to_string(world_rank) + ".txt");
+	ofstream meta_dump("dump/mir_" + std::to_string(world_rank) + ".txt");
+	ofstream l_scc_dump("dump/l_scc_" + std::to_string(world_rank) + ".txt");
 
 	// for(int i=0;i<np;i++)
 	// {
@@ -329,30 +359,45 @@ void display(Basic &basic, Graph &graph, int world_rank)
 	// 		}
 	// 	}
 	// }
-	for(auto it : basic.border_out_vertices[3])
-		cout<<it<<" ";
-
 	
 
-
 	//Display local SCC
-	// for (size_t i = 0; i < boost::num_vertices (graph); ++i)
- //    	cout << basic.local_scc[i] << " ";
-	//Display local merge details
-	// for(int it=0;it<basic.l_scc.size();it++)
-	// {
-	// 	l_scc_dump<<it<<" : ";
-	// 	for(auto itr=basic.l_scc[it].begin(); itr!=basic.l_scc[it].end();itr++)
-	// 		l_scc_dump<<*itr<<" ";
-	// 	l_scc_dump<<endl;
-	// }
-	//Display local merge details
-	for(int it=0;it<basic.merge_detail.size();it++)
+	for (size_t i = 0; i < boost::num_vertices (graph); ++i)
 	{
-		scc_dump<<it<<" : ";
-		for(auto itr=basic.merge_detail[it].begin(); itr!=basic.merge_detail[it].end();itr++)
-			scc_dump<<*itr<<" ";
-		scc_dump<<endl;
+		if(basic.partition_of_vertex[i]==world_rank)
+    		scc_dump << basic.local_scc[i] << " ";
+	}
+	//Display local merge details
+	for(int it=0;it<basic.l_scc.size();it++)
+	{
+		l_scc_dump<<it<<" : ";
+		for(auto itr=basic.l_scc[it].begin(); itr!=basic.l_scc[it].end();itr++)
+			l_scc_dump<<*itr<<" ";
+		l_scc_dump<<endl;
+	}
+	//Display border matrix
+	for(int i =0; i<basic.l_scc.size();i++)
+	{
+		int j=0;
+		meta_dump<<endl;
+		while(basic.border_matrix[i][j] != -1)
+		{
+			meta_dump<<basic.border_matrix[i][j]<<" ";
+			j++;
+		}
+	}
+
+	//Display out matrix
+	for(int i =0; i<basic.l_scc.size();i++)
+	{
+		int j=0;
+		
+		while(basic.out_matrix[i][j] != -1)
+		{
+			out_dump<<basic.out_matrix[i][j]<<" ";
+			j++;
+		}
+		out_dump<<endl;
 	}
 	//Display relevant vertices
 	// for(auto it=basic.relevant_vertices.begin(); it!=basic.relevant_vertices.end(); it++)

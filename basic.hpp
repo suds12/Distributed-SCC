@@ -19,7 +19,8 @@ public:
 	map<int, int> partition_of_vertex; //Hashmap of partition id for each vertex
 	map<int, int> init_scc_of_vertex; //Hashmap of initial scc id for each vertex. This is read from sccmap file.
 	unordered_set<int> border_vertices;  //Hashset of border vertices. Each process maintains its own.
-	map<int, vector<int>> border_out_vertices; //Hashmap that stores the vertices a specific border vertex has outgoing edges to
+	map<int, vector<int>> border_out_vertices; //Hashmap that stores the vertices a specific border vertex has outgoing edges to. Each int is paired with a vector of connecting vertices
+	map<int, vector<int>> border_in_vertices; // Hashmap that stores the vertices a specific border vertex has incoming edges from
 	vector<vector<int>> allocated_graph; //Edge list of partitioned graph. Each process maintains its own
 	vector<vector<int>> allocated_changes; //Edge list of changes. Each process maintains its own
 	//vector<set<int>> local_scc;
@@ -30,24 +31,42 @@ public:
 	vector<int> intersection_set; 
 	vector<vector<int>>merge_detail; 
 	unordered_map<int, int> parent_scc; //Used for creating SCC on disjoint sets using union find
-	int** detail; //2D array with each row holding the intersections of mirror vertices and a single SCC. The root vertex(some random vertex from that SCC) is stored on pos 0 of each row. We send this using MPI to process 0 for merging. 
+	// int **border_matrix;
+	// int **out_matrix;
+	int border_matrix[100][100];
+	int out_matrix[100][100];
+
 	int iteration;
 	int nrows; //Number of SCCs
-	int ncols;  //Size of biggest SCC
+	int ncols;  //Size of biggest SCC(only borders)
 
 	void alloc_2d_init(int rows, int cols);
 
+	Basic()
+	{
+		//Definitely not the optimal way of doing it. Should work on improving this
+		int nrows = 100;  //num of local SCC. Set it to appropriate vale
+		int ncols = 100;  //Max size of borders of SCC
+		// int** border_matrix = new int*[nrows];
+		// int** out_matrix = new int*[nrows];
+		// for(int i = 0; i < nrows; ++i)
+		// {
+		//     border_matrix[i] = new int[ncols];
+		//     out_matrix[i] = new int[ncols];
+		// }
+
+		// memset(arr, 0, (10*20*) * (sizeof *arr));
+		memset(border_matrix, -1, sizeof(int)*nrows*ncols);
+		memset(out_matrix, -1, sizeof(int)*nrows*ncols);
+
+
+	}
+
+
+
 };
 
-void Basic::alloc_2d_init(int rows, int cols)
-	{
-	    int *data = (int *)malloc(rows*cols*sizeof(int));
-	    int **array= (int **)malloc(rows*sizeof(int*));
-	    for (int i=0; i<rows; i++)
-	        array[i] = &(data[cols*i]);
 
-	    detail=array;
-	}
 
 typedef
   boost::adjacency_list<
