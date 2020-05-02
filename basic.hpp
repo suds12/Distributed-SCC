@@ -33,8 +33,8 @@ public:
 	unordered_map<int, int> parent_scc; //Used for creating SCC on disjoint sets using union find
 	// int **border_matrix;
 	// int **out_matrix;
-	int border_matrix[100][100];
-	int out_matrix[100][100];
+	int border_matrix[10][10];
+	int out_matrix[10][10];
 
 	int iteration;
 	int nrows; //Number of SCCs
@@ -45,8 +45,8 @@ public:
 	Basic()
 	{
 		//Definitely not the optimal way of doing it. Should work on improving this
-		int nrows = 100;  //num of local SCC. Set it to appropriate vale
-		int ncols = 100;  //Max size of borders of SCC
+		int nrows = 10;  //num of local SCC. Set it to appropriate vale
+		int ncols = 10;  //Max size of borders of SCC
 		// int** border_matrix = new int*[nrows];
 		// int** out_matrix = new int*[nrows];
 		// for(int i = 0; i < nrows; ++i)

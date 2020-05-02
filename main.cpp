@@ -42,6 +42,7 @@ int main(int argc, char *argv[])
     read_sccmap(argv,basic,world_rank);
     perform_scc(argv,basic,graph,world_rank);
     make_meta(argv,basic,graph,world_rank);
+    send_meta(argv,basic,world_rank);
     //disjoint_union(basic,world_rank);
     //merge_ds(argv,basic,graph,world_rank);
 
