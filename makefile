@@ -8,8 +8,8 @@ mpi_lib=$(mpi_base)/lib
 
 
 
-all: main.cpp merge.hpp 
-	$(CC) -o main -g -w main.cpp global.hpp -I$(boost) -I$(mpi_include) -I$(shared_scc) -L$(mpi_lib) -lmpich -std=c++11
+all: main.cpp 
+	$(CC) -o main -g -w main.cpp global.hpp -I$(boost) -I$(mpi_include)  -L$(mpi_lib) -lmpich -std=c++11
 run:
 	$(run) -np 3 ./main input/distributed/g2/inputgraph input/distributed/g2/sccmap input/distributed/g2/change 11 1 input/distributed/g2/partition 3
 

@@ -6,7 +6,7 @@ Basic holds all the variables needed for SCC and the object reference is passed 
 #include <set>
 #include <map> 
 #include <unordered_map> 
-
+#include <utility> 
 #include <vector>
 #include <boost/graph/adjacency_list.hpp>
 
@@ -35,6 +35,11 @@ public:
 	// int **out_matrix;
 	int border_matrix[10][10];
 	int out_matrix[10][10];
+	int global_border_matrix[30][10];
+	int global_out_matrix[30][10];
+	vector<pair<int, unordered_set<int>>> global_border_vector; //
+	vector<int> global_scc;
+
 
 	int iteration;
 	int nrows; //Number of SCCs
@@ -76,4 +81,14 @@ typedef
   , float                  // property associated with vertices
   >
 Graph;
+
+typedef
+  boost::adjacency_list<
+    boost::vecS            // edge list
+  , boost::vecS            // vertex list
+  , boost::directedS     // directedness
+  , float                  // property associated with vertices
+  >
+MetaGraph;
+
 

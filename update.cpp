@@ -6,7 +6,7 @@
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/strong_components.hpp>
 #include "reader.hpp"
-#include "main_code.cpp"
+
 #define chunk_height 10
 #define chunk_width 10
 #define num_partitions 3
@@ -83,26 +83,63 @@ void make_meta(char *argv[], Basic& basic, Graph& graph, int world_rank)
 
 void send_meta(char *argv[], Basic& basic, int world_rank)
 {
-	ofstream dump_bor("dump/global_matrix.txt");
-	int global_border_matrix[chunk_height * num_partitions][chunk_width];
 	MPI_Gather(basic.border_matrix,  (chunk_width * chunk_height), MPI_INT,      /* everyone sends 2 ints from local */
-           global_border_matrix, (chunk_width * chunk_height), MPI_INT,      /* root receives 2 ints each proc into global */
-           root, MPI_COMM_WORLD);   /* recv'ing process is root, all procs in MPI_COMM_WORLD participate */
+           basic.global_border_matrix, (chunk_width * chunk_height), MPI_INT,      /* root receives 2 ints each proc into global */
+           root, MPI_COMM_WORLD);   /* recv'ing process is root, all procs in MPI_COMM_WORLD participate */	
 
-	if(world_rank == root)
-	{
-		cout<<chunk_height * num_partitions;
-		for(int i=0;i<chunk_height * num_partitions;i++)
-		{
-			for(int j=0;j<chunk_width;j++)
-			{
-				dump_bor<<basic.border_matrix[i][j]<<" ";
-			}
-			dump_bor<<endl;
-		}
-		
-	}
+	MPI_Gather(basic.out_matrix,  (chunk_width * chunk_height), MPI_INT,      /* everyone sends 2 ints from local */
+           basic.global_out_matrix, (chunk_width * chunk_height), MPI_INT,      /* root receives 2 ints each proc into global */
+           root, MPI_COMM_WORLD);   /* recv'ing process is root, all procs in MPI_COMM_WORLD participate */	
                                    
+}
+
+void make_meta_graph(char *argv[], Basic& basic, MetaGraph& meta_graph, int world_rank)
+{
+	/*Convert from 2d array to hash map*/
+	for(int i =0; i<num_partitions*chunk_height;i++)
+	{
+		int j=0;
+		unordered_set<int> temp;
+		while(basic.global_border_matrix[i][j] != -1)
+		{		
+			temp.insert(basic.global_border_matrix[i][j]);
+			j++;
+		}
+		basic.global_border_vector.push_back({i,temp});
+	}
+	for(int i =0; i<num_partitions*chunk_height;i++)
+	{
+		int j=0;
+		while(basic.global_out_matrix[i][j] != -1)
+		{		
+			for(auto row:basic.global_border_vector)
+			{
+				if(row.second.find(basic.global_out_matrix[i][j]) != row.second.end())
+				{
+					//cout<<basic.global_out_matrix[i][j]<<" found in SCC "<<row.first<<endl;
+					cout<<i<<" -> "<<row.first<<endl;
+					boost::add_vertex (i, meta_graph);
+					boost::add_vertex (row.first, meta_graph);
+					boost::add_edge (i, row.first, meta_graph);
+
+				}
+			}
+			j++;
+		}
+	}
+	
+} 
+void recompute_scc(Basic& basic, MetaGraph& meta_graph, int world_rank)
+{
+	basic.global_scc.reserve(100);
+
+	size_t num_components = boost::strong_components (meta_graph, &basic.global_scc[0]);
+	cout<<endl<<"::  "<<num_components;
+
+	for (size_t i = 0; i < boost::num_vertices (meta_graph); ++i)
+	{
+    	cout << basic.global_scc[i] << " ";
+	}
 }
 
 // void disjoint_union(Basic& basic, int world_rank)

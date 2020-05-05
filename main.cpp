@@ -36,6 +36,7 @@ int main(int argc, char *argv[])
     Basic basic;
     Graph graph (11);
     Graph changes (11);
+    MetaGraph meta_graph;
     read_partitions(argv,basic,graph);
     read_graph(argv,basic,graph,world_rank);
     read_changes(argv,basic,changes,graph,world_rank);
@@ -43,6 +44,11 @@ int main(int argc, char *argv[])
     perform_scc(argv,basic,graph,world_rank);
     make_meta(argv,basic,graph,world_rank);
     send_meta(argv,basic,world_rank);
+    if(world_rank==0)
+    {
+        make_meta_graph(argv,basic,meta_graph,world_rank);
+        recompute_scc(basic,meta_graph,world_rank);
+    }
     //disjoint_union(basic,world_rank);
     //merge_ds(argv,basic,graph,world_rank);
 

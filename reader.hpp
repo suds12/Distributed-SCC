@@ -5,6 +5,10 @@
 //#include "basic.hpp"
 
 #include <unordered_set>
+#define chunk_height 10
+#define chunk_width 10
+#define num_partitions 3
+#define root 0
 
 using namespace std;
 
@@ -322,6 +326,7 @@ void display(Basic &basic, Graph &graph, int world_rank)
 	ofstream inter_dump("dump/int_" + std::to_string(world_rank) + ".txt");
 	ofstream meta_dump("dump/mir_" + std::to_string(world_rank) + ".txt");
 	ofstream l_scc_dump("dump/l_scc_" + std::to_string(world_rank) + ".txt");
+	ofstream dump_bor("dump/global_matrix.txt");
 
 	// for(int i=0;i<np;i++)
 	// {
@@ -398,6 +403,21 @@ void display(Basic &basic, Graph &graph, int world_rank)
 			j++;
 		}
 		out_dump<<endl;
+	}
+	//display global border matrix
+	if(world_rank == root)
+	{
+		for(int i=0;i<chunk_height * num_partitions;i++)
+		{
+			int j=0;
+			while(basic.global_border_matrix[i][j] != -1)
+			{
+				dump_bor<<basic.global_border_matrix[i][j]<<" ";
+				j++;
+			}
+			dump_bor<<endl;
+		}
+		
 	}
 	//Display relevant vertices
 	// for(auto it=basic.relevant_vertices.begin(); it!=basic.relevant_vertices.end(); it++)
