@@ -39,6 +39,10 @@ public:
 	int global_out_matrix[30][10];
 	vector<pair<int, unordered_set<int>>> global_border_vector; //
 	vector<int> global_scc;
+	int global_result[30];
+	int local_result[100];
+
+	unordered_set<int> meta_nodes; //A set maintained in root process that holds the list of meta nodes
 
 
 	int iteration;

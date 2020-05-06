@@ -326,6 +326,8 @@ void display(Basic &basic, Graph &graph, int world_rank)
 	ofstream inter_dump("dump/int_" + std::to_string(world_rank) + ".txt");
 	ofstream meta_dump("dump/mir_" + std::to_string(world_rank) + ".txt");
 	ofstream l_scc_dump("dump/l_scc_" + std::to_string(world_rank) + ".txt");
+	ofstream updated_result("dump/result" + std::to_string(world_rank) + ".txt");
+
 	ofstream dump_bor("dump/global_matrix.txt");
 
 	// for(int i=0;i<np;i++)
@@ -419,6 +421,8 @@ void display(Basic &basic, Graph &graph, int world_rank)
 		}
 		
 	}
+	for(int i=0;i<10;i++)
+        updated_result<<basic.local_result[i]<<" ";
 	//Display relevant vertices
 	// for(auto it=basic.relevant_vertices.begin(); it!=basic.relevant_vertices.end(); it++)
 	// {

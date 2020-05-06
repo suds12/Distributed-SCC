@@ -11,6 +11,7 @@
 #define chunk_width 10
 #define num_partitions 3
 #define root 0
+#define global_modifier 9000
 
 
 
@@ -119,7 +120,9 @@ void make_meta_graph(char *argv[], Basic& basic, MetaGraph& meta_graph, int worl
 					//cout<<basic.global_out_matrix[i][j]<<" found in SCC "<<row.first<<endl;
 					cout<<i<<" -> "<<row.first<<endl;
 					boost::add_vertex (i, meta_graph);
+					basic.meta_nodes.insert(i);
 					boost::add_vertex (row.first, meta_graph);
+					basic.meta_nodes.insert(row.first);
 					boost::add_edge (i, row.first, meta_graph);
 
 				}
@@ -131,15 +134,46 @@ void make_meta_graph(char *argv[], Basic& basic, MetaGraph& meta_graph, int worl
 } 
 void recompute_scc(Basic& basic, MetaGraph& meta_graph, int world_rank)
 {
-	basic.global_scc.reserve(100);
+	basic.global_scc.reserve(chunk_height * num_partitions);
 
 	size_t num_components = boost::strong_components (meta_graph, &basic.global_scc[0]);
 	cout<<endl<<"::  "<<num_components;
 
 	for (size_t i = 0; i < boost::num_vertices (meta_graph); ++i)
 	{
-    	cout << basic.global_scc[i] << " ";
+		if(basic.meta_nodes.find(basic.global_scc[i]) != basic.meta_nodes.end())
+		{
+			basic.global_scc[i] += global_modifier;
+		}
+		cout << basic.global_scc[i] << " ";
 	}
+
+}
+
+void create_result(Basic& basic, MetaGraph& meta_graph, int world_rank)
+{
+	//Create a vector with the global SCC IDs that could be scattered back to the respective tasks
+	//This is definitely an unnecessary task and should think of a better way of creating it that doesn't involve iterating over the size of all local SCCs
+	cout<<endl<<"result : ";
+	for(int i=0;i<(chunk_height * num_partitions); i++)
+	{
+		if(basic.global_scc[i] >= global_modifier)
+		{
+			basic.global_result[i]=basic.global_scc[i];
+		}
+		else
+			basic.global_result[i]=-1;
+
+		cout<<basic.global_result[i]<<" ";
+	}
+
+}
+
+void scatter_global(Basic& basic, MetaGraph& meta_graph, int world_rank)
+{
+	MPI_Scatter(basic.global_result,  (chunk_height), MPI_INT,       //everyone recieves chunk_height ints from result 
+           basic.local_result, (chunk_height), MPI_INT,      
+           root, MPI_COMM_WORLD); 
 }
 
 // void disjoint_union(Basic& basic, int world_rank)

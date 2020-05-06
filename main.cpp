@@ -48,15 +48,11 @@ int main(int argc, char *argv[])
     {
         make_meta_graph(argv,basic,meta_graph,world_rank);
         recompute_scc(basic,meta_graph,world_rank);
+        create_result(basic,meta_graph,world_rank);
     }
-    //disjoint_union(basic,world_rank);
-    //merge_ds(argv,basic,graph,world_rank);
+    scatter_global(basic,meta_graph,world_rank);
 
-    
-    
 
-    // Merge m1;
-    // m1.perform_scc(argv,world_rank);
 
     display(basic,graph,world_rank);
   	MPI_Finalize();
