@@ -84,6 +84,14 @@ void make_meta(char *argv[], Basic& basic, Graph& graph, int world_rank)
 
 void send_meta(char *argv[], Basic& basic, int world_rank)
 {
+	/*Each process needs to send its 2d array of columns= border vertices and row= each local SCC to the root process. Likewise another 2d array for out_matrix defined in the above function.
+	This is technically of different shapes in each process depending on the number of border elements so I kept a fixed size array and padded it -1. The challenge
+	here is that root process doesn't know in advance, how many processes are sending so doesn't know how long to wait.
+	There are a few ways you could do this. I am currently doing #4
+	1) The way mentioned in the stack overflow https://stackoverflow.com/questions/53592970/mpi-receiving-data-from-an-unknown-number-of-ranks
+	2) Do an IRecv/ISend and then call a barrier once you know all processes that wanted to send, have, then Recv the right number of messages. This is a danger cause the MPI buffer might fill up if there are too many processes sending. Also might be a bottleneck cause of the barrier.
+	3) Use one-sided communication (MPI 3 standard). Each process that wants to send would just have a space where it says “here is my stuff,” but you’d need a barrier at the end, and also extra memory for every process, since you don’t know which processes will call a put and so don’t want processes trampling over each other’s memory
+	4) If you were going to, say, receive messages from rougly 1/2 the processes it would be better to use an MPI_Gather and just have some ranks send nothing.*/
 	MPI_Gather(basic.border_matrix,  (chunk_width * chunk_height), MPI_INT,      /* everyone sends 2 ints from local */
            basic.global_border_matrix, (chunk_width * chunk_height), MPI_INT,      /* root receives 2 ints each proc into global */
            root, MPI_COMM_WORLD);   /* recv'ing process is root, all procs in MPI_COMM_WORLD participate */	

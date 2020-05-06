@@ -33,10 +33,10 @@ public:
 	unordered_map<int, int> parent_scc; //Used for creating SCC on disjoint sets using union find
 	// int **border_matrix;
 	// int **out_matrix;
-	int border_matrix[10][10];
-	int out_matrix[10][10];
-	int global_border_matrix[30][10];
-	int global_out_matrix[30][10];
+	int border_matrix[10][10]; //2d matrix of number of local SCC with each local SCC containing its respective border vertices. Needed for forming the meta graph
+	int out_matrix[10][10];	////2d matrix of number of local SCC with each local SCC containing the vertices from other partitions that connects to the respective border vertex
+	int global_border_matrix[30][10]; //Stored only in the root. Contains border matrices from all partitions stacked on top of each other.
+	int global_out_matrix[30][10]; //Similarly for out_matrix
 	vector<pair<int, unordered_set<int>>> global_border_vector; //
 	vector<int> global_scc;
 	int global_result[30];
