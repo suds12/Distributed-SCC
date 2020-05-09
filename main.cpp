@@ -34,27 +34,36 @@ int main(int argc, char *argv[])
   
 
     Basic basic;
-    Graph graph (11);
-    Graph changes (11);
+    Graph graph;
+    Graph changes;
     MetaGraph meta_graph;
+    cout<<"reading partition"<<endl;
     read_partitions(argv,basic,graph);
+    cout<<"reading graph"<<endl;
     read_graph(argv,basic,graph,world_rank);
+    cout<<"reading changes"<<endl;
     read_changes(argv,basic,changes,graph,world_rank);
+    cout<<"reading sccmap"<<endl;
     read_sccmap(argv,basic,world_rank);
+    cout<<"Performing initial SCC"<<endl;
     perform_scc(argv,basic,graph,world_rank);
+    cout<<"make meta vertex"<<endl;
     make_meta(argv,basic,graph,world_rank);
+    cout<<"send meta vertex"<<endl;
     send_meta(argv,basic,world_rank);
     if(world_rank==0)
     {
         make_meta_graph(argv,basic,meta_graph,world_rank);
+        display(basic,graph,world_rank);
         recompute_scc(basic,meta_graph,world_rank);
         create_result(basic,meta_graph,world_rank);
+
     }
-    scatter_global(basic,meta_graph,world_rank);
+    //scatter_global(basic,meta_graph,world_rank);
 
 
 
-    display(basic,graph,world_rank);
+    //display(basic,graph,world_rank);
   	MPI_Finalize();
 	return 0;
 }

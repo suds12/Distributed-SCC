@@ -9,13 +9,14 @@ Basic holds all the variables needed for SCC and the object reference is passed 
 #include <utility> 
 #include <vector>
 #include <boost/graph/adjacency_list.hpp>
-
+#define height 3
+#define width 5
+#define np 3
 
 
 class Basic
 {
 public:
-	int np; //number of partitions
 	map<int, int> partition_of_vertex; //Hashmap of partition id for each vertex
 	map<int, int> init_scc_of_vertex; //Hashmap of initial scc id for each vertex. This is read from sccmap file.
 	unordered_set<int> border_vertices;  //Hashset of border vertices. Each process maintains its own.
@@ -33,14 +34,14 @@ public:
 	unordered_map<int, int> parent_scc; //Used for creating SCC on disjoint sets using union find
 	// int **border_matrix;
 	// int **out_matrix;
-	int border_matrix[10][10]; //2d matrix of number of local SCC with each local SCC containing its respective border vertices. Needed for forming the meta graph
-	int out_matrix[10][10];	////2d matrix of number of local SCC with each local SCC containing the vertices from other partitions that connects to the respective border vertex
-	int global_border_matrix[30][10]; //Stored only in the root. Contains border matrices from all partitions stacked on top of each other.
-	int global_out_matrix[30][10]; //Similarly for out_matrix
-	vector<pair<int, unordered_set<int>>> global_border_vector; //
-	vector<int> global_scc;
-	int global_result[30];
-	int local_result[100];
+	int border_matrix[height][width]; //2d matrix of number of local SCC with each local SCC containing its respective border vertices. Needed for forming the meta graph
+    int out_matrix[height][width];  ////2d matrix of number of local SCC with each local SCC containing the vertices from other partitions that connects to the respective border vertex
+    int global_border_matrix[height * np][width]; //Stored only in the root. Contains border matrices from all partitions stacked on top of each other.
+    int global_out_matrix[height * np][width]; //Similarly for out_matrix
+    vector<pair<int, unordered_set<int>>> global_border_vector; //
+    vector<int> global_scc;
+    int global_result[1000];
+    int local_result[height * np];
 
 	unordered_set<int> meta_nodes; //A set maintained in root process that holds the list of meta nodes
 
@@ -54,8 +55,8 @@ public:
 	Basic()
 	{
 		//Definitely not the optimal way of doing it. Should work on improving this
-		int nrows = 10;  //num of local SCC. Set it to appropriate vale
-		int ncols = 10;  //Max size of borders of SCC
+        int nrows = height;  //num of local SCC. Set it to appropriate vale
+        int ncols = width;  //Max size of borders of SCC
 		// int** border_matrix = new int*[nrows];
 		// int** out_matrix = new int*[nrows];
 		// for(int i = 0; i < nrows; ++i)

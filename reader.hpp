@@ -5,8 +5,8 @@
 //#include "basic.hpp"
 
 #include <unordered_set>
-#define chunk_height 10
-#define chunk_width 10
+#define chunk_height 3
+#define chunk_width 5
 #define num_partitions 3
 #define root 0
 
@@ -15,8 +15,8 @@ using namespace std;
 //This function reads the partition id for each vertex from the partition file. The global_SCC disjoint set is also allocated here. Each
 void read_partitions(char *argv[], Basic& basic, Graph& graph)
 {
-	int vertex=0, part;
-	unordered_set<int> :: iterator itr;
+	double vertex=0, part;
+	//unordered_set<int> :: iterator itr;
 
 	ifstream file4 (argv[6]); if (!file4.is_open() ) { cout<<"INPUT ERROR:: Could not open file 4\n";}
 
@@ -24,12 +24,11 @@ void read_partitions(char *argv[], Basic& basic, Graph& graph)
 	while(file4 >> part)
 	{
 		//Create initial disjoint set only on root process
-		if(world_rank==0)
-			global_scc.make_set(vertex); 
-
 		basic.partition_of_vertex.insert({vertex, part});  //Use hashmaps to store which partition each vertex belongs to
 		vertex++;
 	}
+	file4.close();
+	cout<<"done";
 
 }
 
@@ -250,74 +249,6 @@ void read_sccmap(char *argv[], Basic &basic, int world_rank)
 
 }
 
-void merge_ds(char *argv[], Basic &basic, Graph& graph, int world_rank)
-{
-	int vertex, temp=0, id, X;
-	basic.iteration=0;
-	ifstream file2 (argv[2]); if (!file2.is_open() ) { cout<<"INPUT ERROR:: Could not open file 2\n";}
-
-	if(world_rank == 0)
-	{
-		if(basic.iteration==0)
-		{
-			while(file2 >> X)
-			{
-				if(temp==0) //Reading vertex
-				{
-					vertex=X;
-					temp++;
-					continue;
-				}
-				if(temp==1) //Reading SCC map
-				{
-					if(basic.parent_scc.find(X) == basic.parent_scc.end())
-					{
-						basic.parent_scc.insert(pair<int,int>(X,vertex));
-					}
-					else
-					{
-						//cout<<basic.parent_scc.at(X)<<" "<<vertex<<endl;
-						global_scc.union_set(basic.parent_scc.at(X), vertex);
-					}
-
-					temp=0;
-					continue;
-				}
-			
-			}
-		}
-
-		
-		//int *details;
-		int MAX_NUMBERS=100;
-		int* details = new int[MAX_NUMBERS];
-		//MPI_Request request;
-		//MPI_Status status;
-
-		// for(i=0;i<argv[7];i++)
-		// {
-			//MPI_Irecv(details, MAX_NUMBERS, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &request);
-			//MPI_Wait(&request, &status);
-			// for(int i=0;i<20;i++)
-			// {
-			// 	cout<<"*"<<i;
-			// }
-		// //The union operation for disjoint sets
-			// int parent;
-			// for(int i=0;i<max_rows;i++)
-			// {
-				// 	parent=details[i][0];
-				// 	for(int j=0;j<max_cols;j++)
-				// 	{
-				// 		global_scc.union_set(parent,details[i][j]);
-				// 	}
-			// }
-		//}
-
-
-	}
-
-}
 
 void display(Basic &basic, Graph &graph, int world_rank)
 {
@@ -327,7 +258,7 @@ void display(Basic &basic, Graph &graph, int world_rank)
 	ofstream meta_dump("dump/mir_" + std::to_string(world_rank) + ".txt");
 	ofstream l_scc_dump("dump/l_scc_" + std::to_string(world_rank) + ".txt");
 	ofstream updated_result("dump/result" + std::to_string(world_rank) + ".txt");
-
+	ofstream map_dump("dump/b_out_v" + std::to_string(world_rank) + ".txt");
 	ofstream dump_bor("dump/global_matrix.txt");
 
 	// for(int i=0;i<np;i++)
@@ -421,8 +352,8 @@ void display(Basic &basic, Graph &graph, int world_rank)
 		}
 		
 	}
-	for(int i=0;i<10;i++)
-        updated_result<<basic.local_result[i]<<" ";
+	for(int i=0;i<30;i++)
+        updated_result<<basic.global_result[i]<<" ";
 	//Display relevant vertices
 	// for(auto it=basic.relevant_vertices.begin(); it!=basic.relevant_vertices.end(); it++)
 	// {
@@ -433,6 +364,29 @@ void display(Basic &basic, Graph &graph, int world_rank)
 	// {
 	// 	inter_dump<<*it<<" ";
 	// }
+    //Display border_in_vertices
+	typedef map<int, vector<int>>::const_iterator MapIterator;
+	for (MapIterator iter = basic.border_in_vertices.begin(); iter != basic.border_in_vertices.end(); iter++)
+	{
+	    map_dump << "Key: " << iter->first << " Values:";
+	    typedef vector<int>::const_iterator ListIterator;
+	    for (ListIterator list_iter = iter->second.begin(); list_iter != iter->second.end(); list_iter++)
+	        map_dump << " " << *list_iter << endl;
+	}
+	//Display border matrix
+	ofstream fout("dump/bor.txt");
+	if(world_rank==0)
+	{
+		for(int itr=0;itr<2;itr++)
+		{
+			for(int i=0;i<4;i++)
+			{
+				fout<<basic.border_matrix[itr][i]<<" ";
+			}
+
+			fout<<endl;
+		}
+	}
 
 	
 }

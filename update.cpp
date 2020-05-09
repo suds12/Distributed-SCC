@@ -7,8 +7,8 @@
 #include <boost/graph/strong_components.hpp>
 #include "reader.hpp"
 
-#define chunk_height 10
-#define chunk_width 10
+#define chunk_height 3
+#define chunk_width 5
 #define num_partitions 3
 #define root 0
 #define global_modifier 9000
@@ -55,6 +55,8 @@ void perform_scc(char *argv[], Basic& basic, Graph& graph, int world_rank)   //S
 
 void make_meta(char *argv[], Basic& basic, Graph& graph, int world_rank)
 {
+	
+	vector<int> bc;
 	for(int i=0;i<basic.l_scc.size();i++)
 	{
 		int border_count=0, out_count=0;
@@ -79,6 +81,23 @@ void make_meta(char *argv[], Basic& basic, Graph& graph, int world_rank)
 			}	
 			
 		}
+		bc.push_back(border_count);
+		int biggest=0;
+		int size_biggest=basic.l_scc.size();
+		MPI_Reduce(&size_biggest, &biggest, 1, MPI_INT, MPI_MAX, 0, MPI_COMM_WORLD);
+		if(world_rank==0)
+		{
+		 cout<<" "<<biggest;
+		}
+		int max_elem= *max_element(bc.begin(), bc.end());
+		int max=0;
+		MPI_Reduce(&max_elem, &max, 1, MPI_INT, MPI_MAX, 0, MPI_COMM_WORLD);
+		if(world_rank==0)
+		{
+		 cout<<" **"<<max;
+		}
+
+		
 	}
 }
 
@@ -142,10 +161,10 @@ void make_meta_graph(char *argv[], Basic& basic, MetaGraph& meta_graph, int worl
 } 
 void recompute_scc(Basic& basic, MetaGraph& meta_graph, int world_rank)
 {
-	basic.global_scc.reserve(chunk_height * num_partitions);
+	basic.global_scc.reserve(boost::num_vertices (meta_graph));
 
 	size_t num_components = boost::strong_components (meta_graph, &basic.global_scc[0]);
-	cout<<endl<<"::  "<<num_components;
+	//cout<<endl<<"::  "<<num_components;
 
 	for (size_t i = 0; i < boost::num_vertices (meta_graph); ++i)
 	{
@@ -154,6 +173,7 @@ void recompute_scc(Basic& basic, MetaGraph& meta_graph, int world_rank)
 			basic.global_scc[i] += global_modifier;
 		}
 		cout << basic.global_scc[i] << " ";
+
 	}
 
 }
@@ -162,18 +182,25 @@ void create_result(Basic& basic, MetaGraph& meta_graph, int world_rank)
 {
 	//Create a vector with the global SCC IDs that could be scattered back to the respective tasks
 	//This is definitely an unnecessary task and should think of a better way of creating it that doesn't involve iterating over the size of all local SCCs
+	int count=0;
 	cout<<endl<<"result : ";
-	for(int i=0;i<(chunk_height * num_partitions); i++)
+	for (size_t i = 0; i < boost::num_vertices (meta_graph); ++i)
 	{
 		if(basic.global_scc[i] >= global_modifier)
 		{
 			basic.global_result[i]=basic.global_scc[i];
+			count++;
 		}
 		else
+		{
 			basic.global_result[i]=-1;
+			count++;
+		}
 
 		cout<<basic.global_result[i]<<" ";
 	}
+	cout<<endl<<count;
+	
 
 }
 
@@ -182,6 +209,8 @@ void scatter_global(Basic& basic, MetaGraph& meta_graph, int world_rank)
 	MPI_Scatter(basic.global_result,  (chunk_height), MPI_INT,       //everyone recieves chunk_height ints from result 
            basic.local_result, (chunk_height), MPI_INT,      
            root, MPI_COMM_WORLD); 
+
+	cout<<"done";
 }
 
 // void disjoint_union(Basic& basic, int world_rank)
