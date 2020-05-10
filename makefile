@@ -11,7 +11,7 @@ mpi_lib=$(mpi_base)/lib
 all: main.cpp 
 	$(CC) -o main -g -w main.cpp global.hpp -I$(boost) -I$(mpi_include)  -L$(mpi_lib) -lmpich -std=c++11
 run:
-	$(run) -np 3 ./main input/distributed/g2/inputgraph input/distributed/g2/sccmap input/distributed/g2/change 2 1 input/distributed/g2/partition 3
+	$(run) -np 3 ./main input/distributed/g2/input_test input/distributed/g2/sccmap_test input/distributed/g2/change_test 2 1 input/distributed/g2/partition 3
 
 run1:
 	$(run) -np 1 ./main input/inputgraph input/sccinput input/changes 5 1 input/distributed/partition 3	
