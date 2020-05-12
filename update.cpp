@@ -5,6 +5,7 @@
 #include <set>
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/strong_components.hpp>
+#include <vector>
 #include "reader.hpp"
 
 #define chunk_height 3
@@ -47,10 +48,12 @@ void perform_scc(char *argv[], Basic& basic, Graph& graph, int world_rank)   //S
 		if(!basic.temp_scc[i].empty())
 			basic.l_scc.push_back(basic.temp_scc[i]);
 	}
+}
 
-
-
-
+void init_meta(Basic& basic)
+{
+	//for(int i=0;i<basic.l_scc.size();i++)
+	basic.border_matrix.resize(basic.l_scc.size());
 }
 
 void make_meta(char *argv[], Basic& basic, Graph& graph, int world_rank)
@@ -65,7 +68,7 @@ void make_meta(char *argv[], Basic& basic, Graph& graph, int world_rank)
 			//Add borders from both incoming and outgoing edges to border matrix. 
 			if(basic.border_out_vertices.find(*itr) != basic.border_out_vertices.end())
 			{
-				basic.border_matrix[i][border_count]=*itr;
+				basic.border_matrix[i].push_back(*itr);
 				border_count++;
 
 				for(auto item : basic.border_out_vertices.at(*itr))
@@ -76,33 +79,79 @@ void make_meta(char *argv[], Basic& basic, Graph& graph, int world_rank)
 			}
 			if(basic.border_in_vertices.find(*itr) != basic.border_in_vertices.end())
 			{
-				basic.border_matrix[i][border_count]=*itr;
+				basic.border_matrix[i].push_back(*itr);
 				border_count++;
 			}	
 			
 		}
 		bc.push_back(border_count);
-		int biggest=0;
-		int size_biggest=basic.l_scc.size();
-		MPI_Reduce(&size_biggest, &biggest, 1, MPI_INT, MPI_MAX, 0, MPI_COMM_WORLD);
-		if(world_rank==0)
+	}
+	int global_num_scc=0;
+	int local_num_scc=basic.l_scc.size();
+	MPI_Allreduce(&local_num_scc, &global_num_scc, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
+	if(world_rank==0)
+	{
+	 cout<<" "<<global_num_scc;
+	}
+	int global_max_width = 0;
+	int local_max_width = *max_element(bc.begin(), bc.end());
+	MPI_Allreduce(&local_max_width, &global_max_width, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
+	if(world_rank==0)
+	{
+	 cout<<" **"<<global_max_width;
+	}
+	basic.height = global_num_scc;
+	basic.width = global_max_width;
+}
+void padding_meta(Basic& basic)
+{
+	basic.border_matrix.resize(basic.height);
+	basic.global_border_matrix.resize(basic.height * num_partitions, vector<int>(basic.width));
+	for(int i=0;i<basic.height;i++)
+	{
+		for(int j=basic.border_matrix[i].size();j<basic.width;j++)
 		{
-		 cout<<" "<<biggest;
+			basic.border_matrix[i].push_back(-1);
 		}
-		int max_elem= *max_element(bc.begin(), bc.end());
-		int max=0;
-		MPI_Reduce(&max_elem, &max, 1, MPI_INT, MPI_MAX, 0, MPI_COMM_WORLD);
-		if(world_rank==0)
+	}
+	// for(int i=0;i<basic.height * num_partitions;i++)
+	// {
+	// 	for(int j=0;j<basic.width;j++)
+	// 	{
+	// 		basic.global_border_matrix[i][j]=-1;
+	// 	}
+	// }
+
+	
+	
+	ofstream fout("dump/bor_" + std::to_string(world_rank));
+	for(int itr=0;itr<basic.border_matrix.size();itr++)
+	{
+		for(int i=0;i<basic.border_matrix[itr].size();i++)
 		{
-		 cout<<" **"<<max;
+			fout<<basic.border_matrix[itr][i]<<" ";
 		}
 
-		
+		fout<<endl;
 	}
+	ofstream fout1("dump/glob_bor_" + std::to_string(world_rank));
+	for(int itr=0;itr<basic.global_border_matrix.size();itr++)
+	{
+		for(int i=0;i<basic.global_border_matrix[itr].size();i++)
+		{
+			fout1<<basic.global_border_matrix[itr][i]<<" ";
+		}
+
+		fout1<<endl;
+	}
+	//basic.border_matrix.resize(basic.height, vector<int>(basic.width, -1));
+	//basic.global_border_matrix.resize((basic.height * num_partitions), vector<int>(basic.width, -1));
+	
 }
 
 void send_meta(char *argv[], Basic& basic, int world_rank)
 {
+
 	/*Each process needs to send its 2d array of columns= border vertices and row= each local SCC to the root process. Likewise another 2d array for out_matrix defined in the above function.
 	This is technically of different shapes in each process depending on the number of border elements so I kept a fixed size array and padded it -1. The challenge
 	here is that root process doesn't know in advance, how many processes are sending so doesn't know how long to wait.
@@ -111,8 +160,8 @@ void send_meta(char *argv[], Basic& basic, int world_rank)
 	2) Do an IRecv/ISend and then call a barrier once you know all processes that wanted to send, have, then Recv the right number of messages. This is a danger cause the MPI buffer might fill up if there are too many processes sending. Also might be a bottleneck cause of the barrier.
 	3) Use one-sided communication (MPI 3 standard). Each process that wants to send would just have a space where it says “here is my stuff,” but you’d need a barrier at the end, and also extra memory for every process, since you don’t know which processes will call a put and so don’t want processes trampling over each other’s memory
 	4) If you were going to, say, receive messages from rougly 1/2 the processes it would be better to use an MPI_Gather and just have some ranks send nothing.*/
-	MPI_Gather(basic.border_matrix,  (chunk_width * chunk_height), MPI_INT,      /* everyone sends 2 ints from local */
-           basic.global_border_matrix, (chunk_width * chunk_height), MPI_INT,      /* root receives 2 ints each proc into global */
+	MPI_Gather(basic.border_matrix.data(),  (basic.height * basic.width), MPI_INT,      /* everyone sends 2 ints from local */
+           basic.global_border_matrix.data(), (basic.height * basic.width), MPI_INT,      /* root receives 2 ints each proc into global */
            root, MPI_COMM_WORLD);   /* recv'ing process is root, all procs in MPI_COMM_WORLD participate */	
 
 	MPI_Gather(basic.out_matrix,  (chunk_width * chunk_height), MPI_INT,      /* everyone sends 2 ints from local */
@@ -124,6 +173,16 @@ void send_meta(char *argv[], Basic& basic, int world_rank)
 void make_meta_graph(char *argv[], Basic& basic, MetaGraph& meta_graph, int world_rank)
 {
 	/*Convert from 2d array to hash map*/
+	// for(int row=0; row<basic.global_border_matrix.size();row++)
+	// {
+	// 	for(int i=0; i<basic.global_border_matrix[row].size();i++)
+	// 	{
+	// 		cout<<basic.global_border_matrix[row][i]<<" ";
+	// 	}
+	// 	cout<<endl;
+	// }
+
+	cout<<"done";
 	for(int i =0; i<num_partitions*chunk_height;i++)
 	{
 		int j=0;

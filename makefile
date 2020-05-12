@@ -20,4 +20,4 @@ sp:
 	$(run) -np 1 ./main input/distributed/inputgraph input/distributed/sccmap input/distributed/change 11 1 input/distributed/partition1 1
 
 orkut:
-	$(run) -np 3 ./main input/distributed/orkut/input input/distributed/orkut/sccmap input/distributed/orkut/changes 2 1 input/distributed/orkut/partition 3
+	$(run) -np 3 ./main input/distributed/orkut/com-orkut.ungraph.txt input/distributed/orkut/sccmap input/distributed/orkut/changes_orkut 2 1 input/distributed/orkut/partition 3

@@ -97,9 +97,9 @@ void read_graph(char *argv[], Basic &basic, Graph& graph, int world_rank)
             }
             buffer[char_count - 1 ] = '\0';
             char_count = 0;
-            token = strtok(buffer, " ");
+            token = strtok(buffer, "\t");
             node1=atoi(token);
-            token = strtok(NULL, " ");
+            token = strtok(NULL, "\t");
             node2=atoi(token);
 
             //logic for allocating edges based on partition
@@ -178,9 +178,9 @@ void read_changes(char *argv[], Basic &basic, Graph& changes, Graph& graph, int 
             }
             buffer[char_count - 1 ] = '\0';
             char_count = 0;
-            token = strtok(buffer, " ");
+            token = strtok(buffer, "  ");
             node1=atoi(token);
-            token = strtok(NULL, " ");
+            token = strtok(NULL, "  ");
             node2=atoi(token);
 
             //logic for allocating edges based on partition
@@ -389,19 +389,7 @@ void display(Basic &basic, Graph &graph, int world_rank)
 	        map_dump << " " << *list_iter << endl;
 	}
 	//Display border matrix
-	ofstream fout("dump/bor.txt");
-	if(world_rank==0)
-	{
-		for(int itr=0;itr<2;itr++)
-		{
-			for(int i=0;i<4;i++)
-			{
-				fout<<basic.border_matrix[itr][i]<<" ";
-			}
-
-			fout<<endl;
-		}
-	}
+	
 
 	
 }

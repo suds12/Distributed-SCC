@@ -9,8 +9,8 @@ Basic holds all the variables needed for SCC and the object reference is passed 
 #include <utility> 
 #include <vector>
 #include <boost/graph/adjacency_list.hpp>
-#define height 3
-#define width 5
+#define c_height 3
+#define c_width 5
 #define np 3
 
 
@@ -34,14 +34,18 @@ public:
 	unordered_map<int, int> parent_scc; //Used for creating SCC on disjoint sets using union find
 	// int **border_matrix;
 	// int **out_matrix;
-	int border_matrix[height][width]; //2d matrix of number of local SCC with each local SCC containing its respective border vertices. Needed for forming the meta graph
-    int out_matrix[height][width];  ////2d matrix of number of local SCC with each local SCC containing the vertices from other partitions that connects to the respective border vertex
-    int global_border_matrix[height * np][width]; //Stored only in the root. Contains border matrices from all partitions stacked on top of each other.
-    int global_out_matrix[height * np][width]; //Similarly for out_matrix
+	vector<vector<int>> border_matrix; //2d matrix of number of local SCC with each local SCC containing its respective border vertices. Needed for forming the meta graph
+    int out_matrix[c_height][c_width];  ////2d matrix of number of local SCC with each local SCC containing the vertices from other partitions that connects to the respective border vertex
+    vector<vector<int>> global_border_matrix;
+    //int global_border_matrix[c_height * np][c_width]; //Stored only in the root. Contains border matrices from all partitions stacked on top of each other.
+    int global_out_matrix[c_height * np][c_width]; //Similarly for out_matrix
     vector<pair<int, unordered_set<int>>> global_border_vector; //
     vector<int> global_scc;
     int global_result[1000];
-    int local_result[height * np];
+    int local_result[c_height * np];
+    int height;
+    int width;
+
 
 	unordered_set<int> meta_nodes; //A set maintained in root process that holds the list of meta nodes
 
@@ -51,6 +55,7 @@ public:
 	int ncols;  //Size of biggest SCC(only borders)
 
 	void alloc_2d_init(int rows, int cols);
+	void resize_2d_array(int **array, int height, int width);
 
 	Basic()
 	{
@@ -66,7 +71,7 @@ public:
 		// }
 
 		// memset(arr, 0, (10*20*) * (sizeof *arr));
-		memset(border_matrix, -1, sizeof(int)*nrows*ncols);
+		//memset(border_matrix, -1, sizeof(int)*nrows*ncols);
 		memset(out_matrix, -1, sizeof(int)*nrows*ncols);
 
 
@@ -75,6 +80,7 @@ public:
 
 
 };
+
 
 
 
