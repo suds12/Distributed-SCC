@@ -1,15 +1,16 @@
-mpi_base=/usr/local/packages/mpich/3.2/gcc-5
-boost=/home/users/ssriniv2/packages/boost_1_72_0
+mpi_base?=/usr/local/packages/mpich/3.2/gcc-5
+boost?=/home/users/ssriniv2/packages/boost_1_72_0
 shared_scc=/home/users/ssriniv2/SCC/SharedSCC
-CC=$(mpi_base)/bin/mpic++
+CC=$(mpi_base)/bin/mpic++ -DDEBUG
 run=$(mpi_base)/bin/mpirun
-mpi_include=$(mpi_base)/include
-mpi_lib=$(mpi_base)/lib
-
 
 
 all: main.cpp 
-	$(CC) -o main -g -w main.cpp global.hpp -I$(boost) -I$(mpi_include)  -L$(mpi_lib) -lmpich -std=c++11
+	$(CC) -o main -g -w main.cpp global.hpp -I$(boost) -lmpich -std=c++11
+
+debug: 
+	$(run) -np 3 xterm -hold -e gdb -ex ./main input/distributed/g2/input_test input/distributed/g2/sccmap_test input/distributed/g2/change_test 2 1 input/distributed/g2/partition 3
+
 run:
 	$(run) -np 3 ./main input/distributed/g2/input_test input/distributed/g2/sccmap_test input/distributed/g2/change_test 2 1 input/distributed/g2/partition 3
 

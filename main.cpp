@@ -29,6 +29,13 @@ int main(int argc, char *argv[])
     //int world_rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
 
+#if DEBUG
+    char hostname[256];
+    gethostname(hostname, sizeof(hostname));
+    printf("PID %d on %s ready for attach\n", getpid(), hostname);
+    fflush(stdout);
+#endif
+
     //shared_scc(argc, argv);
     //Reader r1;
   
