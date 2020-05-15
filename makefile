@@ -1,7 +1,7 @@
 mpi_base?=/usr/local/packages/mpich/3.2/gcc-5
 boost?=/home/users/ssriniv2/packages/boost_1_72_0
 shared_scc=/home/users/ssriniv2/SCC/SharedSCC
-CC=$(mpi_base)/bin/mpic++ -DDEBUG
+CC=$(mpi_base)/bin/mpic++ 
 run=$(mpi_base)/bin/mpirun
 
 
