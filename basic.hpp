@@ -36,11 +36,31 @@ public:
 	// int **out_matrix;
 	int border_matrix[height][width]; //2d matrix of number of local SCC with each local SCC containing its respective border vertices. Needed for forming the meta graph
     int out_matrix[height][width];  ////2d matrix of number of local SCC with each local SCC containing the vertices from other partitions that connects to the respective border vertex
+    //COO representation of border_matrix
+    int *border_row;
+    int *border_col;
+    int *border_value;
+    int *border_combined;
+    int nnz_capacity;
+    int index;
+    //COO representation of out_matrix
+    int *out_row;
+    int *out_col;
+    int *out_value;
+    int *out_combined;
+    int out_nnz_capacity;
+    int out_index;
+
+    int *global_out_combined;
+    int *global_border_combined;
+    int sizeof_borders;
+    int sizeof_outs;
+
     int global_border_matrix[height * np][width]; //Stored only in the root. Contains border matrices from all partitions stacked on top of each other.
     int global_out_matrix[height * np][width]; //Similarly for out_matrix
-    vector<pair<int, unordered_set<int>>> global_border_vector; //
+    map<int,int>global_border_map; //
     vector<int> global_scc;
-    int global_result[1000];
+    int *global_result;
     int local_result[height * np];
 
 	unordered_set<int> meta_nodes; //A set maintained in root process that holds the list of meta nodes
@@ -66,6 +86,8 @@ public:
 		// }
 
 		// memset(arr, 0, (10*20*) * (sizeof *arr));
+		sizeof_borders = 0;
+		sizeof_outs = 0;
 		memset(border_matrix, -1, sizeof(int)*nrows*ncols);
 		memset(out_matrix, -1, sizeof(int)*nrows*ncols);
 
