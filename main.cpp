@@ -8,6 +8,10 @@
 #include "update.cpp"
 #include "reader.hpp"
 
+#ifdef HAVE_PETSC
+// Debugging support 
+#include <petscsys.h>
+#endif
 
 using namespace std;
 //Global variables
@@ -21,7 +25,14 @@ int main(int argc, char *argv[])
     
     //-----------------------------------
 	// Initialize the MPI environment
+#ifdef HAVE_PETSC
+    PetscErrorCode ierr;
+    PetscInitialize( &argc, &argv, 0, 0 );
+    ierr = PetscPrintf( PETSC_COMM_WORLD, "Hello World\n" );
+    CHKERRQ(ierr);
+#else
     MPI_Init(NULL, NULL);
+#endif
     // Get the number of processes
     //int world_size;
     MPI_Comm_size(MPI_COMM_WORLD, &world_size);
@@ -64,6 +75,10 @@ int main(int argc, char *argv[])
 
 
     //display(basic,graph,world_rank);
-  	MPI_Finalize();
-	return 0;
+#ifdef HAVE_PETSC
+    PetscFinalize();
+#else
+    MPI_Finalize();
+#endif
+    return 0;
 }
