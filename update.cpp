@@ -54,15 +54,15 @@ void perform_scc(char *argv[], Basic& basic, Graph& graph, int world_rank)   //S
 void init_coo(Basic& basic)
 {
 	//initial size is 10
-	basic.border_row = (int*) malloc(sizeof(int) * 10); 
-	basic.border_col = (int*) malloc(sizeof(int) * 10);
-	basic.border_value = (int*) malloc(sizeof(int) * 10);
-	basic.nnz_capacity = 10;
+	basic.border_row = (int*) malloc(sizeof(int) * 1); 
+	basic.border_col = (int*) malloc(sizeof(int) * 1);
+	basic.border_value = (int*) malloc(sizeof(int) * 1);
+	basic.nnz_capacity = 1;
 	//initial size is 10
-	basic.out_row = (int*) malloc(sizeof(int) * 10); 
-	basic.out_col = (int*) malloc(sizeof(int) * 10);
-	basic.out_value = (int*) malloc(sizeof(int) * 10);
-	basic.out_nnz_capacity = 10;	
+	basic.out_row = (int*) malloc(sizeof(int) * 1); 
+	basic.out_col = (int*) malloc(sizeof(int) * 1);
+	basic.out_value = (int*) malloc(sizeof(int) * 1);
+	basic.out_nnz_capacity = 1;	
 }
 
 
@@ -357,13 +357,13 @@ void create_result(Basic& basic, MetaGraph& meta_graph, int world_rank)
 	//This is definitely an unnecessary task and should think of a better way of creating it that doesn't involve iterating over the size of all local SCCs
 	basic.global_result = (int*) malloc(sizeof(int) * 100000000);
 	int count=0;
-	cout<<endl<<"result : ";
-	cout<< boost::num_vertices (meta_graph);
+	// cout<<endl<<"result : ";
+	// cout<< boost::num_vertices (meta_graph);
 	for (size_t i = 0; i < boost::num_vertices (meta_graph); ++i)
 	{
 		if(basic.meta_nodes.find(basic.global_scc[i]) != basic.meta_nodes.end())
 		{
-			cout<<basic.global_scc[i];
+			//cout<<basic.global_scc[i];
 			basic.global_result[i]=basic.global_scc[i];
 			count++;
 		}
