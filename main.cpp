@@ -37,33 +37,47 @@ int main(int argc, char *argv[])
     Graph graph;
     Graph changes;
     MetaGraph meta_graph;
-    cout<<"reading partition"<<endl;
+    cout<<"reading partition from rank "<<world_rank<<endl;
     read_partitions(argv,basic,graph);
-    cout<<"reading graph"<<endl;
+
+    cout<<"reading graph from rank "<<world_rank<<endl;
     read_graph(argv,basic,graph,world_rank);
-    cout<<"reading changes"<<endl;
+
+    cout<<"reading changes from rank "<<world_rank<<endl;
     read_changes(argv,basic,changes,graph,world_rank);
-    cout<<"reading sccmap"<<endl;
+
+    cout<<"reading sccmap from rank "<<world_rank<<endl;
     read_sccmap(argv,basic,world_rank);
-    cout<<"Performing initial SCC"<<endl;
+
+    cout<<"Performing initial SCC from rank "<<world_rank<<endl;
     perform_scc(argv,basic,graph,world_rank);
-    cout<<"make meta vertex"<<endl;
+
+    cout<<"Initialisizng COO from rank "<<world_rank<<endl;
+    init_coo(basic);
+
+    cout<<"make meta vertex from rank "<<world_rank<<endl;
     make_meta(argv,basic,graph,world_rank);
-    cout<<"send meta vertex"<<endl;
-    send_meta(argv,basic,world_rank);
+
+    cout<<"preparing to send from rank "<<world_rank<<endl;
+    prepare_to_send(basic,world_rank);
+
+    cout<<"send meta vertex from rank "<<world_rank<<endl;
+    send_meta(argv,basic,world_rank,world_size);
     if(world_rank==0)
     {
+        cout<<"make meta graph from rank "<<world_rank<<endl;
         make_meta_graph(argv,basic,meta_graph,world_rank);
-        display(basic,graph,world_rank);
+        // display(basic,graph,world_rank);
+        cout<<"recompute SCC from rank "<<world_rank<<endl;
         recompute_scc(basic,meta_graph,world_rank);
         create_result(basic,meta_graph,world_rank);
 
     }
-    //scatter_global(basic,meta_graph,world_rank);
+    scatter_global(basic,meta_graph,world_rank);
 
 
 
-    //display(basic,graph,world_rank);
+    display(basic,graph,world_rank);
   	MPI_Finalize();
 	return 0;
 }
