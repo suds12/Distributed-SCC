@@ -53,22 +53,25 @@ void perform_scc(char *argv[], Basic& basic, Graph& graph, int world_rank)   //S
 
 void init_coo(Basic& basic)
 {
-	//initial size is 10
-	basic.border_row = (int*) malloc(sizeof(int) * (basic.total_border_count*2)); 
-	basic.border_col = (int*) malloc(sizeof(int) * (basic.total_border_count*2));
-	basic.border_value = (int*) malloc(sizeof(int) * (basic.total_border_count*2));
-	basic.nnz_capacity = (basic.total_border_count*2);
-	//initial size is 10
-	basic.out_row = (int*) malloc(sizeof(int) * (basic.total_border_count*2)); 
-	basic.out_col = (int*) malloc(sizeof(int) * (basic.total_border_count*2));
-	basic.out_value = (int*) malloc(sizeof(int) * (basic.total_border_count*2));
+	//initial size is double the border count.
+	basic.border_row = new int[basic.total_border_count*2];
+	basic.border_col = new int[basic.total_border_count*2];
+	basic.border_value = new int[basic.total_border_count*2];
+
+	basic.out_row = new int[basic.total_border_count*2];
+	basic.out_col = new int[basic.total_border_count*2];
+	basic.out_value = new int[basic.total_border_count*2];
+
+	
+	basic.nnz_capacity = (basic.total_border_count * 2);
+	cout<<"^^^"<<(basic.total_border_count * 2);
 	basic.out_nnz_capacity = (basic.total_border_count*2);	
 }
 
 
 void make_meta(char *argv[], Basic& basic, Graph& graph, int world_rank)
 {
-	ofstream fout("dump/resizing_" + std::to_string(world_rank));
+	//ofstream fout("dump/resizing_" + std::to_string(world_rank));
 	/*Here we create the meta vertices and store them as matrices in COO format. EAch row represents the local SCC Id and each column represents the border border vertices in that SCC. 
 	Likewise we create another matrix for storing our vertices. Here each row represents the local SCC id and each column represents the border vertex from another SCC to which this local SCC connects to.
 	We need both these information to make a meta graph*/
@@ -83,25 +86,25 @@ void make_meta(char *argv[], Basic& basic, Graph& graph, int world_rank)
 			//Add borders from both incoming and outgoing edges to border matrix. 
 			if(basic.border_out_vertices.find(*itr) != basic.border_out_vertices.end())
 			{
-				fout<<basic.index<<" "<<basic.nnz_capacity<<endl;
-				if(basic.index >= basic.nnz_capacity)
-				{
-					cout<<"REsizing from "<<world_rank<<endl;
-					//Resize the coo arrays by 1000. Need to empirically identify a better resizing size.
-					int *temp, *temp1, *temp2;
-					temp = (int*) realloc(basic.border_row, 1000 * sizeof(int));
-					temp1 = (int*) realloc(basic.border_col, 1000 * sizeof(int));
-					temp2 = (int*) realloc(basic.border_value, 1000 * sizeof(int));
+				//fout<<basic.index<<" "<<basic.nnz_capacity<<endl;
+				// if(basic.index >= basic.nnz_capacity)
+				// {
+				// 	cout<<"REsizing from "<<world_rank<<endl;
+				// 	//Resize the coo arrays by 1000. Need to empirically identify a better resizing size.
+				// 	int *temp, *temp1, *temp2;
+				// 	temp = (int*) realloc(basic.border_row, 1000 * sizeof(int));
+				// 	temp1 = (int*) realloc(basic.border_col, 1000 * sizeof(int));
+				// 	temp2 = (int*) realloc(basic.border_value, 1000 * sizeof(int));
 
-					if(temp!=NULL && temp1!=NULL & temp2!= NULL)
-					{
-						basic.border_row = temp;
-						basic.border_col = temp1;
-						basic.border_value = temp2;
-					}
-					basic.nnz_capacity += 1000;
+				// 	if(temp!=NULL && temp1!=NULL & temp2!= NULL)
+				// 	{
+				// 		basic.border_row = temp;
+				// 		basic.border_col = temp1;
+				// 		basic.border_value = temp2;
+				// 	}
+				// 	basic.nnz_capacity += 1000;
 
-				}
+				// }
 				basic.border_row[basic.index]=row_offset;
 				basic.border_col[basic.index]=col_offset;
 				basic.border_value[basic.index]=*itr;
@@ -113,24 +116,24 @@ void make_meta(char *argv[], Basic& basic, Graph& graph, int world_rank)
 
 				for(auto item : basic.border_out_vertices.at(*itr))
 				{
-					if(basic.out_index >= basic.out_nnz_capacity)
-					{
-						//fout<<basic.index<<" "<<basic.nnz_capacity<<endl;
-						//cout<<"Resizing from "<<world_rank<<endl;
-						//Resize the coo arrays by 1000
-						int *temp3, *temp4, *temp5;
-						temp3 = (int*) realloc(basic.out_row, 1000 * sizeof(int));
-						temp4 = (int*) realloc(basic.out_col, 1000 * sizeof(int));
-						temp5 = (int*) realloc(basic.out_value, 1000 * sizeof(int));
+					// if(basic.out_index >= basic.out_nnz_capacity)
+					// {
+					// 	//fout<<basic.index<<" "<<basic.nnz_capacity<<endl;
+					// 	//cout<<"Resizing from "<<world_rank<<endl;
+					// 	//Resize the coo arrays by 1000
+					// 	int *temp3, *temp4, *temp5;
+					// 	temp3 = (int*) realloc(basic.out_row, 1000 * sizeof(int));
+					// 	temp4 = (int*) realloc(basic.out_col, 1000 * sizeof(int));
+					// 	temp5 = (int*) realloc(basic.out_value, 1000 * sizeof(int));
 
-						if(temp3!=NULL && temp4!=NULL & temp5!= NULL)
-						{
-							basic.out_row = temp3;
-							basic.out_col = temp4;
-							basic.out_value = temp5;
-						}
-						basic.out_nnz_capacity +=1000;
-					}
+					// 	if(temp3!=NULL && temp4!=NULL & temp5!= NULL)
+					// 	{
+					// 		basic.out_row = temp3;
+					// 		basic.out_col = temp4;
+					// 		basic.out_value = temp5;
+					// 	}
+					// 	basic.out_nnz_capacity +=1000;
+					// }
 					basic.out_row[basic.out_index]=row_offset;
 					basic.out_col[basic.out_index]=col_offset;
 					basic.out_value[basic.out_index]=item;
@@ -142,23 +145,23 @@ void make_meta(char *argv[], Basic& basic, Graph& graph, int world_rank)
 			}
 			if(basic.border_in_vertices.find(*itr) != basic.border_in_vertices.end())
 			{
-				if(basic.index >= basic.nnz_capacity)
-				{
-					//fout<<basic.index<<" "<<basic.nnz_capacity<<endl;
-					//cout<<"REsizing from "<<world_rank<<endl;
-					//Resize the coo arrays by 1000
-					int *temp, *temp1, *temp2;
-					temp = (int*) realloc(basic.border_row, 1000 * sizeof(int));
-					temp1 = (int*) realloc(basic.border_col, 1000 * sizeof(int));
-					temp2 = (int*) realloc(basic.border_value, 1000 * sizeof(int));
+				// if(basic.index >= basic.nnz_capacity)
+				// {
+				// 	//fout<<basic.index<<" "<<basic.nnz_capacity<<endl;
+				// 	//cout<<"REsizing from "<<world_rank<<endl;
+				// 	//Resize the coo arrays by 1000
+				// 	int *temp, *temp1, *temp2;
+				// 	temp = (int*) realloc(basic.border_row, 1000 * sizeof(int));
+				// 	temp1 = (int*) realloc(basic.border_col, 1000 * sizeof(int));
+				// 	temp2 = (int*) realloc(basic.border_value, 1000 * sizeof(int));
 
-					if(temp!=NULL && temp1!=NULL & temp2!= NULL)
-					{
-						basic.border_row = temp;
-						basic.border_col = temp1;
-						basic.border_value = temp2;
-					}
-				}
+				// 	if(temp!=NULL && temp1!=NULL & temp2!= NULL)
+				// 	{
+				// 		basic.border_row = temp;
+				// 		basic.border_col = temp1;
+				// 		basic.border_value = temp2;
+				// 	}
+				// }
 				basic.border_row[basic.index]=row_offset;
 				basic.border_col[basic.index]=col_offset;
 				basic.border_value[basic.index]=*itr;
@@ -181,9 +184,9 @@ void prepare_to_send(Basic& basic, int world_rank)
 {
 	int task_modifier = 1000 * world_rank;
 	//allocate space for the array to comprise all 2 arrays of COO representation for both border and out matrix.
-	basic.border_combined = (int*) malloc(sizeof(int) * (basic.index * 2)); 
-	basic.out_combined = (int*) malloc(sizeof(int) * (basic.out_index * 2));
-	int overall_size = (basic.index * 2) + (basic.out_index*2);
+	basic.border_combined = new int [basic.index * 2]; 
+	basic.out_combined = new int [basic.out_index * 2];
+	
 	
 	//Copying elements from 2 arrays to border_combined in  such a away that each element of border_combined is followed by each element of out_combined .
 	//I am not sending the col array as it doesn't matter which col the border vertices belong to. So only 2 arrays form the COO are sent.
@@ -219,18 +222,18 @@ void prepare_to_send(Basic& basic, int world_rank)
 	// 	//fout<<basic.border_combined[i]<<" ";
 	// }
 
-	ofstream fout("dump/combined_" + std::to_string(world_rank));
-	for(int i=0; i<basic.out_index*2;i++)
-	{
-		//fout<<basic.out_row[i]<<" "<<basic.out_col[i]<<" "<<basic.out_value[i]<<endl;
-		fout<<basic.out_combined[i]<<" ";
-	}
-	ofstream fout1("dump/b_combined_" + std::to_string(world_rank));
-	for(int i=0; i<basic.index*2;i++)
-	{
-		//fout<<basic.out_row[i]<<" "<<basic.out_col[i]<<" "<<basic.out_value[i]<<endl;
-		fout1<<basic.border_combined[i]<<" ";
-	}
+	// ofstream fout("dump/combined_" + std::to_string(world_rank));
+	// for(int i=0; i<basic.out_index*2;i++)
+	// {
+	// 	//fout<<basic.out_row[i]<<" "<<basic.out_col[i]<<" "<<basic.out_value[i]<<endl;
+	// 	fout<<basic.out_combined[i]<<" ";
+	// }
+	// ofstream fout1("dump/b_combined_" + std::to_string(world_rank));
+	// for(int i=0; i<basic.index*2;i++)
+	// {
+	// 	//fout<<basic.out_row[i]<<" "<<basic.out_col[i]<<" "<<basic.out_value[i]<<endl;
+	// 	fout1<<basic.border_combined[i]<<" ";
+	// }
 }
 
 void send_meta(char *argv[], Basic& basic, int world_rank, int world_size)
@@ -264,12 +267,12 @@ void send_meta(char *argv[], Basic& basic, int world_rank, int world_size)
 
 	basic.sizeof_borders=accumulate(counts , counts+world_size , basic.sizeof_borders);
 	//cout<<"&&"<<basic.sizeof_borders;
-	ofstream fout("dump/global_combined" );
-	if (world_rank == 0)
-	{
-		for(int i=0;i<basic.sizeof_borders;i++)
-			fout<<basic.global_border_combined[i]<<" ";
-	}
+	// ofstream fout("dump/global_combined" );
+	// if (world_rank == 0)
+	// {
+	// 	for(int i=0;i<basic.sizeof_borders;i++)
+	// 		fout<<basic.global_border_combined[i]<<" ";
+	// }
 
 	//----send out combined ------------------------
 
@@ -315,9 +318,9 @@ void make_meta_graph(char *argv[], Basic& basic, MetaGraph& meta_graph, int worl
 	for(int i=0; i<basic.sizeof_outs; i+=2)
 	{
 		//cout<<basic.global_out_combined[i]<<" -> "<<basic.global_border_map[basic.global_out_combined[i +1]]<<endl;
-		boost::add_vertex(basic.global_out_combined[i], meta_graph);
+		//boost::add_vertex(basic.global_out_combined[i], meta_graph);
 		basic.meta_nodes.insert(basic.global_out_combined[i]);
-		boost::add_vertex(basic.global_border_map[basic.global_out_combined[i +1]], meta_graph);
+		//boost::add_vertex(basic.global_border_map[basic.global_out_combined[i +1]], meta_graph);
 		basic.meta_nodes.insert(basic.global_border_map[basic.global_out_combined[i +1]]);
 		boost::add_edge (basic.global_out_combined[i], basic.global_border_map[basic.global_out_combined[i +1]], meta_graph);
 	}
@@ -350,7 +353,7 @@ void create_result(Basic& basic, MetaGraph& meta_graph, int world_rank)
 {
 	//Create a vector with the global SCC IDs that could be scattered back to the respective tasks
 	//This is definitely an unnecessary task and should think of a better way of creating it that doesn't involve iterating over the size of all local SCCs
-	basic.global_result = (int*) malloc(sizeof(int) * 100000000);
+	basic.global_result = new int [1000000];
 	int count=0;
 	// cout<<endl<<"result : ";
 	// cout<< boost::num_vertices (meta_graph);
@@ -377,7 +380,7 @@ void create_result(Basic& basic, MetaGraph& meta_graph, int world_rank)
 
 void scatter_global(Basic& basic, MetaGraph& meta_graph, int world_rank)
 {
-	basic.local_result = (int*) malloc(sizeof(int) * 10000000);
+	basic.local_result = new int [1000000];
 	MPI_Scatter(basic.global_result,  (chunk_height), MPI_INT,       //everyone recieves chunk_height ints from result 
            basic.local_result, (chunk_height), MPI_INT,      
            root, MPI_COMM_WORLD); 

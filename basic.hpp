@@ -9,6 +9,11 @@ Basic holds all the variables needed for SCC and the object reference is passed 
 #include <utility> 
 #include <vector>
 #include <boost/graph/adjacency_list.hpp>
+
+#include <boost/archive/text_oarchive.hpp>
+#include <boost/archive/text_iarchive.hpp>
+#include <boost/serialization/vector.hpp>
+
 #define height 3
 #define width 5
 #define np 3
@@ -17,6 +22,15 @@ Basic holds all the variables needed for SCC and the object reference is passed 
 class Basic
 {
 public:
+	vector<int> input_graph;
+	// friend class boost::serialization::access;
+ //    template<class Archive>
+ //    void serialize(Archive & ar, const unsigned int version)
+ //    {
+ //        // Simply list all the fields to be serialized/deserialized.
+ //        ar & input_graph;
+ //    }
+
 	map<int, int> partition_of_vertex; //Hashmap of partition id for each vertex
 	map<int, int> init_scc_of_vertex; //Hashmap of initial scc id for each vertex. This is read from sccmap file.
 	unordered_set<int> border_vertices;  //Hashset of border vertices. Each process maintains its own.
@@ -89,25 +103,26 @@ public:
 		// memset(arr, 0, (10*20*) * (sizeof *arr));
 		sizeof_borders = 0;
 		sizeof_outs = 0;
+		total_border_count = 0;
 		//memset(border_matrix, -1, sizeof(int)*nrows*ncols);
 		//memset(out_matrix, -1, sizeof(int)*nrows*ncols);
 	}
 	~Basic()
 	{
-		free(border_row);
-		free(border_col);
-		free(border_value);
-		free(border_combined);
-		free(global_border_combined);
+		delete[] border_row;
+		delete[] border_col;
+		delete[] border_value;
+		delete[] border_combined;
+		delete[] global_border_combined;
 
-		free(out_row);
-		free(out_col);
-		free(out_value);
-		free(out_combined);
-		free(global_out_combined);
+		delete[] out_row;
+		delete[] out_col;
+		delete[] out_value;
+		delete[] out_combined;
+		delete[] global_out_combined;
 
-		free(global_result);
-		free(local_result);
+		delete[] global_result;
+		delete[] local_result;
 	}
 
 

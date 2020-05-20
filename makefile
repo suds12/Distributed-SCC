@@ -4,6 +4,7 @@ shared_scc=/home/users/ssriniv2/SCC/SharedSCC
 CC=$(mpi_base)/bin/mpic++
 run=$(mpi_base)/bin/mpirun
 CFLAGS?=-g3 -I$(boost) -I$(boost)/include -std=c++11
+LIBS = /home/users/ssriniv2/packages/boost_1_72_0/stage/lib/libboost_serialization.a
 
 # ifdef PETSC_DIR
 #   mpi_base=$(PETSC_DIR)/$(PETSC_ARCH)
@@ -34,3 +35,6 @@ facebook:
 	$(run) -np 3 ./main input/facebook/facebook_combined.txt input/facebook/scc_map input/facebook/changes 2 1 input/facebook/partition_facebook.txt 3
 clean:
 	$(RM) *.o main
+
+clean dump:
+	rm dump/*

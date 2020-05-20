@@ -36,7 +36,7 @@ int main(int argc, char *argv[])
     //shared_scc(argc, argv);
     //Reader r1;
   
-
+    
     Basic basic;
     Graph graph;
     Graph changes;
@@ -49,6 +49,8 @@ int main(int argc, char *argv[])
 
     cout<<"reading changes from rank "<<world_rank<<endl;
     read_changes(argv,basic,changes,graph,world_rank);
+
+    //serialize_basic(basic);
 
     // cout<<"reading sccmap from rank "<<world_rank<<endl;
     // read_sccmap(argv,basic,world_rank);
@@ -82,7 +84,7 @@ int main(int argc, char *argv[])
     {
         cout<<"make meta graph from rank "<<world_rank<<endl;
         make_meta_graph(argv,basic,meta_graph,world_rank);
-        // display(basic,graph,world_rank);
+
         cout<<"recompute SCC from rank "<<world_rank<<endl;
         recompute_scc(basic,meta_graph,world_rank);
 
@@ -92,6 +94,7 @@ int main(int argc, char *argv[])
     }
     cout<<"scatter results from rank "<<world_rank<<endl;
     scatter_global(basic,meta_graph,world_rank);
+
     end = std::chrono::system_clock::now();
     std::chrono::duration<double> elapsed_seconds = end - start;
     std::time_t end_time = std::chrono::system_clock::to_time_t(end);

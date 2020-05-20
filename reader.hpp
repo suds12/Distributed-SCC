@@ -6,6 +6,10 @@
 #include<sys/mman.h>
 #include<sys/stat.h>
 #include<fcntl.h>
+#include <boost/archive/text_oarchive.hpp>
+#include <boost/archive/text_iarchive.hpp>
+#include <boost/serialization/vector.hpp>
+
 #define chunk_height 3
 #define chunk_width 5
 #define num_partitions 5
@@ -106,6 +110,8 @@ void read_graph(char *argv[], Basic &basic, Graph& graph, int world_rank)
             	//Here we allocate an edge to the two processes that holds the vertices
 				if(world_rank == basic.partition_of_vertex.at(node1) or world_rank == basic.partition_of_vertex.at(node2))
 				{
+					basic.input_graph.push_back(node1);
+					basic.input_graph.push_back(node2);
 					boost::add_edge (node1, node2, graph);  //Storing in boost ajacency list.
 					//store border vertices and store the vertices a specific border vertex has outgoing edges to. This is stored seperately and is only used for merging. Not included while performing local SCC.
 					if(world_rank == basic.partition_of_vertex.at(node1))
@@ -147,6 +153,8 @@ void read_graph(char *argv[], Basic &basic, Graph& graph, int world_rank)
             	//Here we allocate an edge only to the process that holds both the vertices
 				if(world_rank == basic.partition_of_vertex.at(node1))
 				{
+					basic.input_graph.push_back(node1);
+					basic.input_graph.push_back(node2);
 					boost::add_edge (node1, node2, graph);   //boost graph
 				}
             }
@@ -268,6 +276,19 @@ void read_sccmap(char *argv[], Basic &basic, int world_rank)
             lineno++;
         }
     }
+}
+
+void serialize_basic(Basic basic)
+{
+	vector<int> input_graph = basic.input_graph;
+	// ofstream ofs("Basic_binary");
+	// // save data to archive
+ //    {
+ //        boost::archive::text_oarchive oa(ofs);
+ //        // write class instance to archive
+ //        oa & input_graph;
+ //    	// archive and stream closed when destructors are called
+ //    }
 }
 
 
