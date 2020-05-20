@@ -334,45 +334,11 @@ void display(Basic &basic, Graph &graph, int world_rank)
 			l_scc_dump<<*itr<<" ";
 		l_scc_dump<<endl;
 	}
-	//Display border matrix
-	for(int i =0; i<basic.l_scc.size();i++)
-	{
-		int j=0;
-		meta_dump<<endl;
-		while(basic.border_matrix[i][j] != -1)
-		{
-			meta_dump<<basic.border_matrix[i][j]<<" ";
-			j++;
-		}
-	}
+	
 
-	//Display out matrix
-	for(int i =0; i<basic.l_scc.size();i++)
-	{
-		int j=0;
-		
-		while(basic.out_matrix[i][j] != -1)
-		{
-			out_dump<<basic.out_matrix[i][j]<<" ";
-			j++;
-		}
-		out_dump<<endl;
-	}
-	//display global border matrix
-	if(world_rank == root)
-	{
-		for(int i=0;i<chunk_height * num_partitions;i++)
-		{
-			int j=0;
-			while(basic.global_border_matrix[i][j] != -1)
-			{
-				dump_bor<<basic.global_border_matrix[i][j]<<" ";
-				j++;
-			}
-			dump_bor<<endl;
-		}
-		
-	}
+	
+
+	
 	for(int i=0;i<30;i++)
         updated_result<<basic.global_result[i]<<" ";
 	//Display relevant vertices
@@ -394,20 +360,8 @@ void display(Basic &basic, Graph &graph, int world_rank)
 	    for (ListIterator list_iter = iter->second.begin(); list_iter != iter->second.end(); list_iter++)
 	        map_dump << " " << *list_iter << endl;
 	}
-	//Display border matrix
-	ofstream fout("dump/bor.txt");
-	if(world_rank==0)
-	{
-		for(int itr=0;itr<2;itr++)
-		{
-			for(int i=0;i<4;i++)
-			{
-				fout<<basic.border_matrix[itr][i]<<" ";
-			}
 
-			fout<<endl;
-		}
-	}
+	
 
 	
 }

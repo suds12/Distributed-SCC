@@ -2,6 +2,9 @@
 #include <cstdlib>
 #include <mpi.h>
 #include <map>
+#include <chrono> 
+#include <ctime>
+
 #include "merge.hpp"
 #include "basic.hpp"
 //#include "main_code.cpp"
@@ -10,6 +13,7 @@
 
 
 using namespace std;
+
 //Global variables
 vector<set <int> > sccSets;
 int world_rank, world_size, local_size;
@@ -18,7 +22,7 @@ int world_rank, world_size, local_size;
 
 int main(int argc, char *argv[])
 {
-    
+     std::chrono::time_point<std::chrono::system_clock> start, end;
     //-----------------------------------
 	// Initialize the MPI environment
     MPI_Init(NULL, NULL);
@@ -49,14 +53,18 @@ int main(int argc, char *argv[])
     // cout<<"reading sccmap from rank "<<world_rank<<endl;
     // read_sccmap(argv,basic,world_rank);
 
+    //This barrier is kept so timing can start accurately. 
+    //It shouldn't affect the overall execution but small tasks will progress until mpi_gather and wait there while bigger tasks are still reading.
     cout<<"Rank "<<world_rank<<" waiting for other tasks to finish reading"<<endl;
     MPI_Barrier(MPI_COMM_WORLD);
+
+    //start timer
+    start = std::chrono::system_clock::now();
 
     cout<<"Performing initial SCC from rank "<<world_rank<<endl;
     perform_scc(argv,basic,graph,world_rank);
 
-    //This barrier is kept so timing can start accurately. 
-    //It shouldn't affect the overall execution but small tasks will progress until mpi_gather and wait there while bigger tasks are still reading.
+    
     
 
     cout<<"Initialisizng COO from rank "<<world_rank<<" for "<<basic.total_border_count<<" border vertices"<<endl;
@@ -77,10 +85,21 @@ int main(int argc, char *argv[])
         // display(basic,graph,world_rank);
         cout<<"recompute SCC from rank "<<world_rank<<endl;
         recompute_scc(basic,meta_graph,world_rank);
+
+        cout<<"creating result from rank "<<world_rank<<endl;
         create_result(basic,meta_graph,world_rank);
 
     }
+    cout<<"scatter results from rank "<<world_rank<<endl;
     scatter_global(basic,meta_graph,world_rank);
+    end = std::chrono::system_clock::now();
+    std::chrono::duration<double> elapsed_seconds = end - start;
+    std::time_t end_time = std::chrono::system_clock::to_time_t(end);
+    if(world_rank ==0)
+    {
+        std::cout << "finished computation at " << std::ctime(&end_time) 
+                  << "elapsed time: " << elapsed_seconds.count() << "s\n";
+    }
 
 
 

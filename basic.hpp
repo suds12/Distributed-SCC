@@ -61,7 +61,7 @@ public:
     map<int,int>global_border_map; //key=border vertex, val=local scc_id(made unique by adding with task_modifier)
     vector<int> global_scc; //Stores the scc result for meta graph.  
     int *global_result; //array format for global_scc to send back to every. Can probably be removed as this is unnecessary conversion
-    int local_result[height * np];
+    int *local_result;
     int total_border_count;
 
 	unordered_set<int> meta_nodes; //A set maintained in root process that holds the list of meta nodes
@@ -89,10 +89,25 @@ public:
 		// memset(arr, 0, (10*20*) * (sizeof *arr));
 		sizeof_borders = 0;
 		sizeof_outs = 0;
-		memset(border_matrix, -1, sizeof(int)*nrows*ncols);
-		memset(out_matrix, -1, sizeof(int)*nrows*ncols);
+		//memset(border_matrix, -1, sizeof(int)*nrows*ncols);
+		//memset(out_matrix, -1, sizeof(int)*nrows*ncols);
+	}
+	~Basic()
+	{
+		free(border_row);
+		free(border_col);
+		free(border_value);
+		free(border_combined);
+		free(global_border_combined);
 
+		free(out_row);
+		free(out_col);
+		free(out_value);
+		free(out_combined);
+		free(global_out_combined);
 
+		free(global_result);
+		free(local_result);
 	}
 
 

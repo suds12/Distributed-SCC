@@ -186,6 +186,7 @@ void prepare_to_send(Basic& basic, int world_rank)
 	int overall_size = (basic.index * 2) + (basic.out_index*2);
 	
 	//Copying elements from 2 arrays to border_combined in  such a away that each element of border_combined is followed by each element of out_combined .
+	//I am not sending the col array as it doesn't matter which col the border vertices belong to. So only 2 arrays form the COO are sent.
 	//This is parallel safe so should be parallelized using openmp. I wonder if we should actually copy. Placing the respective pointers in 2 successive locations would technically form a combined array but won't be contigious and that would be a problem while doing MPI_gather. 
 	//Need to confirm with Boyana. Not copying over the array would be a huge oprimization.
 	int row = 0, col = 0, val = 0;
@@ -303,11 +304,13 @@ void make_meta_graph(char *argv[], Basic& basic, MetaGraph& meta_graph, int worl
 {
 	/*Here we connect the meta vertices(local SCCs) to form a meta graph based on the border vertices from each partition and out_vertex to which each border vertex connects to.*/
 
+	cout<<"converting to hashmap"<<endl;
 	//Store border_combined in hasmap. key=border vertex and value= respective meta vertex(local SCC ID) 
 	for(int i=0; i<basic.sizeof_borders; i+=2)
 	{
 		basic.global_border_map.insert({basic.global_border_combined[i+1], basic.global_border_combined[i]}); //key=border vertex, val=local scc_id(made unique by adding with task_modifier)
 	}	
+	cout<<"creating meta graph"<<endl;
 	//For each out_vertex check which meta vertex it belongs to and make the connection between the 2 meta vertices.
 	for(int i=0; i<basic.sizeof_outs; i+=2)
 	{
@@ -374,6 +377,7 @@ void create_result(Basic& basic, MetaGraph& meta_graph, int world_rank)
 
 void scatter_global(Basic& basic, MetaGraph& meta_graph, int world_rank)
 {
+	basic.local_result = (int*) malloc(sizeof(int) * 10000000);
 	MPI_Scatter(basic.global_result,  (chunk_height), MPI_INT,       //everyone recieves chunk_height ints from result 
            basic.local_result, (chunk_height), MPI_INT,      
            root, MPI_COMM_WORLD); 
