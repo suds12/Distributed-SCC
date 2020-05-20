@@ -8,7 +8,7 @@
 #include<fcntl.h>
 #define chunk_height 3
 #define chunk_width 5
-#define num_partitions 3
+#define num_partitions 5
 #define root 0
 
 using namespace std;
@@ -17,9 +17,7 @@ using namespace std;
 const char* get_file_map_info(const char* fname, size_t& num_bytes, int& world_rank){
     int fd = open(fname, O_RDONLY); // 19
     if(fd == -1){
-        if (world_rank == 0){
-            cerr<< "error opening the file" << endl;
-        }
+        cerr<< "error opening the file" << endl;
         return fname; // if there is an error, just returning the filename back
     }
     struct stat sb; // 20
@@ -117,10 +115,12 @@ void read_graph(char *argv[], Basic &basic, Graph& graph, int world_rank)
 							vector<int> borders;
 							borders.push_back(node2);
 							basic.border_out_vertices.insert({node1, borders});
+							basic.total_border_count++;
 						}
 						else //border vertex already exists. Push oppopsite vertex to vector mapped with border vertex
 						{
 							basic.border_out_vertices[node1].push_back(node2);
+							basic.total_border_count++;
 						}
 					}
 					//Similarly, store borders of incoming edges in another hashmap
@@ -131,10 +131,12 @@ void read_graph(char *argv[], Basic &basic, Graph& graph, int world_rank)
 							vector<int> borders;
 							borders.push_back(node1);
 							basic.border_in_vertices.insert({node2, borders});
+							basic.total_border_count++;
 						}
 						else //border vertex already exists. Push oppopsite vertex to vector mapped with border vertex
 						{
 							basic.border_in_vertices[node2].push_back(node1);
+							basic.total_border_count++;
 						}
 
 					}
@@ -198,10 +200,12 @@ void read_changes(char *argv[], Basic &basic, Graph& changes, Graph& graph, int 
 							vector<int> borders;
 							borders.push_back(node2);
 							basic.border_out_vertices.insert({node1, borders});
+							basic.total_border_count++;
 						}
 						else //border vertex already exists. Push oppopsite vertex to vector mapped with border vertex
 						{
 							basic.border_out_vertices[node1].push_back(node2);
+							basic.total_border_count++;
 						}
 					}
 					//Similarly, store borders of incoming edges in another hashmap
@@ -212,10 +216,12 @@ void read_changes(char *argv[], Basic &basic, Graph& changes, Graph& graph, int 
 							vector<int> borders;
 							borders.push_back(node1);
 							basic.border_in_vertices.insert({node2, borders});
+							basic.total_border_count++;
 						}
 						else //border vertex already exists. Push oppopsite vertex to vector mapped with border vertex
 						{
 							basic.border_in_vertices[node2].push_back(node1);
+							basic.total_border_count++;
 						}
 
 					}

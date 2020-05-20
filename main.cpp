@@ -46,13 +46,18 @@ int main(int argc, char *argv[])
     cout<<"reading changes from rank "<<world_rank<<endl;
     read_changes(argv,basic,changes,graph,world_rank);
 
-    cout<<"reading sccmap from rank "<<world_rank<<endl;
-    read_sccmap(argv,basic,world_rank);
+    // cout<<"reading sccmap from rank "<<world_rank<<endl;
+    // read_sccmap(argv,basic,world_rank);
 
     cout<<"Performing initial SCC from rank "<<world_rank<<endl;
     perform_scc(argv,basic,graph,world_rank);
 
-    cout<<"Initialisizng COO from rank "<<world_rank<<endl;
+    //This barrier is kept so timing can start accurately. 
+    //It shouldn't affect the overall execution but small tasks will progress until mpi_gather and wait there while bigger tasks are still reading.
+    cout<<"Rank "<<world_rank<<" waiting for other tasks to finish reading"<<endl;
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    cout<<"Initialisizng COO from rank "<<world_rank<<" for "<<basic.total_border_count<<" border vertices"<<endl;
     init_coo(basic);
 
     cout<<"make meta vertex from rank "<<world_rank<<endl;
@@ -77,7 +82,7 @@ int main(int argc, char *argv[])
 
 
 
-    display(basic,graph,world_rank);
+    // display(basic,graph,world_rank);
   	MPI_Finalize();
 	return 0;
 }

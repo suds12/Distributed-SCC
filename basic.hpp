@@ -34,8 +34,8 @@ public:
 	unordered_map<int, int> parent_scc; //Used for creating SCC on disjoint sets using union find
 	// int **border_matrix;
 	// int **out_matrix;
-	int border_matrix[height][width]; //2d matrix of number of local SCC with each local SCC containing its respective border vertices. Needed for forming the meta graph
-    int out_matrix[height][width];  ////2d matrix of number of local SCC with each local SCC containing the vertices from other partitions that connects to the respective border vertex
+	//int border_matrix[height][width]; //2d matrix of number of local SCC with each local SCC containing its respective border vertices. Needed for forming the meta graph
+    //int out_matrix[height][width];  ////2d matrix of number of local SCC with each local SCC containing the vertices from other partitions that connects to the respective border vertex
     //COO representation of border_matrix
     int *border_row;
     int *border_col;
@@ -51,17 +51,18 @@ public:
     int out_nnz_capacity;
     int out_index;
 
-    int *global_out_combined;
-    int *global_border_combined;
-    int sizeof_borders;
-    int sizeof_outs;
+    int *global_out_combined; //Combined array of all out COOs at the root
+    int *global_border_combined; //Combined array of all border COOs at the root
+    int sizeof_borders; //Total num of nodes in global_border_combined. Maintained ar root
+    int sizeof_outs; //Total num of nodes in global_out_combined. maintained at root
 
     int global_border_matrix[height * np][width]; //Stored only in the root. Contains border matrices from all partitions stacked on top of each other.
     int global_out_matrix[height * np][width]; //Similarly for out_matrix
-    map<int,int>global_border_map; //
-    vector<int> global_scc;
-    int *global_result;
+    map<int,int>global_border_map; //key=border vertex, val=local scc_id(made unique by adding with task_modifier)
+    vector<int> global_scc; //Stores the scc result for meta graph.  
+    int *global_result; //array format for global_scc to send back to every. Can probably be removed as this is unnecessary conversion
     int local_result[height * np];
+    int total_border_count;
 
 	unordered_set<int> meta_nodes; //A set maintained in root process that holds the list of meta nodes
 

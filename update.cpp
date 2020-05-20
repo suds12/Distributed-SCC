@@ -54,20 +54,21 @@ void perform_scc(char *argv[], Basic& basic, Graph& graph, int world_rank)   //S
 void init_coo(Basic& basic)
 {
 	//initial size is 10
-	basic.border_row = (int*) malloc(sizeof(int) * 1); 
-	basic.border_col = (int*) malloc(sizeof(int) * 1);
-	basic.border_value = (int*) malloc(sizeof(int) * 1);
-	basic.nnz_capacity = 1;
+	basic.border_row = (int*) malloc(sizeof(int) * (basic.total_border_count*2)); 
+	basic.border_col = (int*) malloc(sizeof(int) * (basic.total_border_count*2));
+	basic.border_value = (int*) malloc(sizeof(int) * (basic.total_border_count*2));
+	basic.nnz_capacity = (basic.total_border_count*2);
 	//initial size is 10
-	basic.out_row = (int*) malloc(sizeof(int) * 1); 
-	basic.out_col = (int*) malloc(sizeof(int) * 1);
-	basic.out_value = (int*) malloc(sizeof(int) * 1);
-	basic.out_nnz_capacity = 1;	
+	basic.out_row = (int*) malloc(sizeof(int) * (basic.total_border_count*2)); 
+	basic.out_col = (int*) malloc(sizeof(int) * (basic.total_border_count*2));
+	basic.out_value = (int*) malloc(sizeof(int) * (basic.total_border_count*2));
+	basic.out_nnz_capacity = (basic.total_border_count*2);	
 }
 
 
 void make_meta(char *argv[], Basic& basic, Graph& graph, int world_rank)
 {
+	ofstream fout("dump/resizing_" + std::to_string(world_rank));
 	/*Here we create the meta vertices and store them as matrices in COO format. EAch row represents the local SCC Id and each column represents the border border vertices in that SCC. 
 	Likewise we create another matrix for storing our vertices. Here each row represents the local SCC id and each column represents the border vertex from another SCC to which this local SCC connects to.
 	We need both these information to make a meta graph*/
@@ -76,14 +77,16 @@ void make_meta(char *argv[], Basic& basic, Graph& graph, int world_rank)
 	basic.index=0, basic.out_index=0;
 	for(int i=0;i<basic.l_scc.size();i++)
 	{
-		int border_count=0, out_count=0, col_offset=0;
+		int col_offset=0;
 		for(auto itr=basic.l_scc[i].begin(); itr!=basic.l_scc[i].end();itr++)
 		{
 			//Add borders from both incoming and outgoing edges to border matrix. 
 			if(basic.border_out_vertices.find(*itr) != basic.border_out_vertices.end())
 			{
+				fout<<basic.index<<" "<<basic.nnz_capacity<<endl;
 				if(basic.index >= basic.nnz_capacity)
 				{
+					cout<<"REsizing from "<<world_rank<<endl;
 					//Resize the coo arrays by 1000. Need to empirically identify a better resizing size.
 					int *temp, *temp1, *temp2;
 					temp = (int*) realloc(basic.border_row, 1000 * sizeof(int));
@@ -96,7 +99,7 @@ void make_meta(char *argv[], Basic& basic, Graph& graph, int world_rank)
 						basic.border_col = temp1;
 						basic.border_value = temp2;
 					}
-					//basic.nnz_capacity += 1000;
+					basic.nnz_capacity += 1000;
 
 				}
 				basic.border_row[basic.index]=row_offset;
@@ -104,14 +107,16 @@ void make_meta(char *argv[], Basic& basic, Graph& graph, int world_rank)
 				basic.border_value[basic.index]=*itr;
 				basic.index++;
 
-				basic.border_matrix[i][border_count]=*itr;
-				border_count++;
+				//basic.border_matrix[i][border_count]=*itr;
+				//border_count++;
 
 
 				for(auto item : basic.border_out_vertices.at(*itr))
 				{
 					if(basic.out_index >= basic.out_nnz_capacity)
 					{
+						//fout<<basic.index<<" "<<basic.nnz_capacity<<endl;
+						//cout<<"Resizing from "<<world_rank<<endl;
 						//Resize the coo arrays by 1000
 						int *temp3, *temp4, *temp5;
 						temp3 = (int*) realloc(basic.out_row, 1000 * sizeof(int));
@@ -124,21 +129,23 @@ void make_meta(char *argv[], Basic& basic, Graph& graph, int world_rank)
 							basic.out_col = temp4;
 							basic.out_value = temp5;
 						}
-						//basic.out_nnz_capacity +=1000;
+						basic.out_nnz_capacity +=1000;
 					}
 					basic.out_row[basic.out_index]=row_offset;
 					basic.out_col[basic.out_index]=col_offset;
 					basic.out_value[basic.out_index]=item;
 					basic.out_index++;
 
-					basic.out_matrix[i][out_count]=item;
-					out_count++;
+					//basic.out_matrix[i][out_count]=item;
+					//out_count++;
 				}
 			}
 			if(basic.border_in_vertices.find(*itr) != basic.border_in_vertices.end())
 			{
 				if(basic.index >= basic.nnz_capacity)
 				{
+					//fout<<basic.index<<" "<<basic.nnz_capacity<<endl;
+					//cout<<"REsizing from "<<world_rank<<endl;
 					//Resize the coo arrays by 1000
 					int *temp, *temp1, *temp2;
 					temp = (int*) realloc(basic.border_row, 1000 * sizeof(int));
@@ -157,29 +164,14 @@ void make_meta(char *argv[], Basic& basic, Graph& graph, int world_rank)
 				basic.border_value[basic.index]=*itr;
 				basic.index++;
 
-				basic.border_matrix[i][border_count]=*itr;
-				border_count++;
+				//basic.border_matrix[i][border_count]=*itr;
+				//border_count++;
 			}	
 
 			col_offset++;
 			
 		}
 		//Don't need these. From the old implementation but it breaks when I remove them. So need to check where it is being used and make appropriate changes.
-		bc.push_back(border_count);
-		int biggest=0;
-		int size_biggest=basic.l_scc.size();
-		MPI_Reduce(&size_biggest, &biggest, 1, MPI_INT, MPI_MAX, 0, MPI_COMM_WORLD);
-		if(world_rank==0)
-		{
-		 cout<<" "<<biggest;
-		}
-		int max_elem= *max_element(bc.begin(), bc.end());
-		int max=0;
-		MPI_Reduce(&max_elem, &max, 1, MPI_INT, MPI_MAX, 0, MPI_COMM_WORLD);
-		if(world_rank==0)
-		{
-		 cout<<" **"<<max;
-		}
 
 		row_offset++;
 	}
@@ -319,7 +311,7 @@ void make_meta_graph(char *argv[], Basic& basic, MetaGraph& meta_graph, int worl
 	//For each out_vertex check which meta vertex it belongs to and make the connection between the 2 meta vertices.
 	for(int i=0; i<basic.sizeof_outs; i+=2)
 	{
-		cout<<basic.global_out_combined[i]<<" -> "<<basic.global_border_map[basic.global_out_combined[i +1]]<<endl;
+		//cout<<basic.global_out_combined[i]<<" -> "<<basic.global_border_map[basic.global_out_combined[i +1]]<<endl;
 		boost::add_vertex(basic.global_out_combined[i], meta_graph);
 		basic.meta_nodes.insert(basic.global_out_combined[i]);
 		boost::add_vertex(basic.global_border_map[basic.global_out_combined[i +1]], meta_graph);
@@ -339,15 +331,15 @@ void recompute_scc(Basic& basic, MetaGraph& meta_graph, int world_rank)
 	size_t num_components = boost::strong_components (meta_graph, &basic.global_scc[0]);
 	//cout<<endl<<"::  "<<num_components;
 
-	for (size_t i = 0; i < boost::num_vertices (meta_graph); ++i)
-	{
-		if(basic.meta_nodes.find(basic.global_scc[i]) != basic.meta_nodes.end())
-		{
-			cout << i<<" = "<<basic.global_scc[i] << endl;;
-		}
+	// for (size_t i = 0; i < boost::num_vertices (meta_graph); ++i)
+	// {
+	// 	if(basic.meta_nodes.find(basic.global_scc[i]) != basic.meta_nodes.end())
+	// 	{
+	// 		cout << i<<" = "<<basic.global_scc[i] << endl;;
+	// 	}
 		
 
-	}
+	// }
 
 }
 
