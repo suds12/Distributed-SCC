@@ -93,7 +93,7 @@ int main(int argc, char *argv[])
 
     log_end(event_local_scc);
 
-    if (DEBUG) cout<<"Initialisizng COO from rank "<<world_rank<<" for "<<basic.total_border_count<<" border vertices"<<endl;
+    if (DEBUG) cout<<"Initialisizing COO from rank "<<world_rank<<" for "<<basic.total_border_count<<" border vertices"<<endl;
 
     log_begin(event_init_coo);
     init_coo(basic);
@@ -107,7 +107,8 @@ int main(int argc, char *argv[])
     prepare_to_send(basic,world_rank);
 
     if (DEBUG) cout<<"send meta vertex from rank "<<world_rank<<endl;
-    send_meta(argv,basic,world_rank,world_size);
+    //send_meta(argv,basic,world_rank,world_size);
+    update_borders(argv,basic,world_rank,world_size);
     log_end(event_make_meta_par);
 
     log_begin(event_make_meta_seq);

@@ -244,8 +244,8 @@ void prepare_to_send(Basic& basic, int world_rank)
 
 void send_meta(char *argv[], Basic& basic, int world_rank, int world_size)
 {
-	/*Each process needs to send its 2 1d array, 1 for border_combined and another for out_combined defined in the above function.
-	The challenge here is that root process doesn't know in advance, how many processes are sending so doesn't know how long to wait.
+	/*Each process needs to send its two 1d arrays, one for border_combined and another for out_combined defined in the above function.
+	The challenge here is that root process doesn't know in advance how many processes are sending so doesn't know how long to wait.
 	There are a few ways you could do this. I am currently doing #4
 	1) The way mentioned in the stack overflow https://stackoverflow.com/questions/53592970/mpi-receiving-data-from-an-unknown-number-of-ranks
 	2) Do an IRecv/ISend and then call a barrier once you know all processes that wanted to send, have, then Recv the right number of messages. This is a danger cause the MPI buffer might fill up if there are too many processes sending. Also might be a bottleneck cause of the barrier.
@@ -255,6 +255,7 @@ void send_meta(char *argv[], Basic& basic, int world_rank, int world_size)
 	//---send border combined------
 	int* counts = new int[world_size];
 	int size_to_send = basic.index*2;
+
 	// Each process tells the root how many elements it holds
 	MPI_Gather(&size_to_send, 1, MPI_INT, counts, 1, MPI_INT, root, MPI_COMM_WORLD);
 	// Displacements in the receive buffer for MPI_GATHERV
@@ -307,6 +308,45 @@ void send_meta(char *argv[], Basic& basic, int world_rank, int world_size)
 	// 		fout1<<basic.global_out_combined[i]<<" ";
 	// }
                                    
+}
+
+void update_borders(char *argv[], Basic& basic, int world_rank, int world_size)
+{
+    /*Each process needs to send its two 1d arrays, one for border_combined and another for out_combined defined in the above function.
+    The challenge here is that root process doesn't know in advance how many processes are sending so doesn't know how long to wait.
+    There are a few ways you could do this. I am currently doing #4
+    1) The way mentioned in the stack overflow https://stackoverflow.com/questions/53592970/mpi-receiving-data-from-an-unknown-number-of-ranks
+    2) Do an IRecv/ISend and then call a barrier once you know all processes that wanted to send, have, then Recv the right number of messages. This is a danger cause the MPI buffer might fill up if there are too many processes sending. Also might be a bottleneck cause of the barrier.
+    3) Use one-sided communication (MPI 3 standard). Each process that wants to send would just have a space where it says “here is my stuff,” but you’d need a barrier at the end, and also extra memory for every process, since you don’t know which processes will call a put and so don’t want processes trampling over each other’s memory
+    4) If you were going to, say, receive messages from rougly 1/2 the processes it would be better to use an MPI_Gather and just have some ranks send nothing.*/
+
+    //---send border combined------
+	int* counts = new int[world_size];
+	int size_to_send = basic.index*2;
+
+	// Each process tells the everyone else how many elements it holds
+	MPI_Allgather(&size_to_send, 1, MPI_INT, counts, 1, MPI_INT, MPI_COMM_WORLD);
+
+	// Displacements in the receive buffer for MPI_GATHERV
+	int *disps = new int[world_size];
+
+	// Displacement for the first chunk of data - 0
+	for (int i = 0; i < world_size; i++)
+	   disps[i] = (i > 0) ? (disps[i-1] + counts[i-1]) : 0;
+
+
+	// Place to hold the gathered data, replicated in all tasks!
+	basic.global_border_combined = new int[disps[world_size-1] + counts[world_size-1]];
+	// Collect everything
+    MPI_Allgatherv(basic.out_combined, size_to_send, MPI_INT, basic.global_out_combined, counts, disps, MPI_INT, MPI_COMM_WORLD);
+
+	//cout<<"&&"<<basic.sizeof_borders;
+	// ofstream fout("dump/global_combined" );
+	// if (world_rank == 0)
+	// {
+	// 	for(int i=0;i<basic.sizeof_borders;i++)
+	// 		fout<<basic.global_border_combined[i]<<" ";
+	// }
 }
 
 void make_meta_graph(char *argv[], Basic& basic, MetaGraph& meta_graph, int world_rank)

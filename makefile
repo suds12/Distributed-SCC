@@ -1,7 +1,7 @@
 # These are Sudharshan-only settings, which can be changed in the environment for correct locations elsewhere
 mpi_base?=/usr/local/packages/mpich/3.2/gcc-5
 shared_scc?=/home/users/ssriniv2/SCC/SharedSCC
-CFLAGS=-g -std=c++11
+CFLAGS=-g -std=c++11 -g3
 
 ifeq ($(BOOST_ROOT),)
   BOOST_ROOT=/home/users/ssriniv2/packages/boost_1_72_0
