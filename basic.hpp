@@ -113,7 +113,6 @@ public:
 	}
 	~Basic()
 	{
-	    /*
 		DELETE_1DARRAY(border_row);
 		DELETE_1DARRAY(border_col);
 		DELETE_1DARRAY(border_value);
@@ -126,9 +125,10 @@ public:
 		DELETE_1DARRAY(out_combined);
 		DELETE_1DARRAY(global_out_combined);
 
-		DELETE_1DARRAY(global_result);
+		// This causes a crash with signal 6
+		//DELETE_1DARRAY(global_result);
 		DELETE_1DARRAY(local_result);
-	     */
+
 	}
 
 
