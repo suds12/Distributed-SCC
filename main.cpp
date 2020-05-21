@@ -142,6 +142,8 @@ int main(int argc, char *argv[])
 
 
     // display(basic,graph,world_rank);
+    MPI_Barrier(MPI_COMM_WORLD);
+
 #ifdef HAVE_PETSC
     PetscFinalize();
 #else

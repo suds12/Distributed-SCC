@@ -21,7 +21,7 @@ ifdef PETSC_DIR
    mpi_base=$(PETSC_DIR)/$(PETSC_ARCH)
    CFLAGS+= -I$(PETSC_DIR)/include -DHAVE_PETSC
    LIBS+=-lpetsc $(PETSC_EXTERNAL_LIB_BASIC)
-   RUNOPTS=-log_view
+   RUNOPTS+=-log_view
 endif
 
 CC=$(mpi_base)/bin/mpic++
@@ -34,19 +34,19 @@ all: main.o
 	$(CC) $(CFLAGS) -o main  $^ $(LDFLAGS) $(LIBS)
 
 run:
-	$(run) -np 3 ./main input/distributed/g2/input_test input/distributed/g2/sccmap_test input/distributed/g2/change_test 2 1 input/distributed/g2/partition 3 $(RUNOPTS)
+	$(run) $(MPIRUNOPTS) -np 3 ./main input/distributed/g2/input_test input/distributed/g2/sccmap_test input/distributed/g2/change_test 2 1 input/distributed/g2/partition 3 $(RUNOPTS)
 
 run1:
-	$(run) -np 1 ./main input/inputgraph input/sccinput input/changes 5 1 input/distributed/partition 3 $(RUNOPTS)
+	$(run) $(MPIRUNOPTS) -np 1 ./main input/inputgraph input/sccinput input/changes 5 1 input/distributed/partition 3 $(RUNOPTS)
 
 sp:
-	$(run) -np 1 ./main input/distributed/inputgraph input/distributed/sccmap input/distributed/change 11 1 input/distributed/partition1 1 $(RUNOPTS)
+	$(run) $(MPIRUNOPTS) -np 1 ./main input/distributed/inputgraph input/distributed/sccmap input/distributed/change 11 1 input/distributed/partition1 1 $(RUNOPTS)
 
 orkut:
-	$(run) -np 8 ./main ../orkut/input.txt ../orkut/sccmap ../orkut/changes_orkut 2 1 ../orkut/partition_8.txt 3 $(RUNOPTS)
+	$(run) $(MPIRUNOPTS) -np 8 ./main ../orkut/input.txt ../orkut/sccmap ../orkut/changes_orkut 2 1 ../orkut/partition_8.txt 3 $(RUNOPTS)
 
 facebook:
-	$(run) -np 3 ./main input/facebook/facebook_combined.txt input/facebook/scc_map input/facebook/changes 2 1 input/facebook/partition_facebook.txt 3 $(RUNOPTS)
+	$(run) $(MPIRUNOPTS) -np 3 ./main input/facebook/facebook_combined.txt input/facebook/scc_map input/facebook/changes 2 1 input/facebook/partition_facebook.txt 3 $(RUNOPTS)
 
 clean:
 	$(RM) *.o main

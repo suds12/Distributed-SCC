@@ -18,6 +18,7 @@ Basic holds all the variables needed for SCC and the object reference is passed 
 #define width 5
 #define np 3
 
+#define DELETE_1DARRAY(x) if (x!=nullptr) delete[] x
 
 class Basic
 {
@@ -31,7 +32,7 @@ public:
  //        ar & input_graph;
  //    }
 
-	int edge_count;
+	int edge_count=0;
 	unordered_set<int> nodes;
 	map<int, int> partition_of_vertex; //Hashmap of partition id for each vertex
 	map<int, int> init_scc_of_vertex; //Hashmap of initial scc id for each vertex. This is read from sccmap file.
@@ -53,24 +54,24 @@ public:
 	//int border_matrix[height][width]; //2d matrix of number of local SCC with each local SCC containing its respective border vertices. Needed for forming the meta graph
     //int out_matrix[height][width];  ////2d matrix of number of local SCC with each local SCC containing the vertices from other partitions that connects to the respective border vertex
     //COO representation of border_matrix
-    int *border_row;
-    int *border_col;
-    int *border_value;
-    int *border_combined;
-    int nnz_capacity;
-    int index;
+    int *border_row=nullptr;
+    int *border_col=nullptr;
+    int *border_value=nullptr;
+    int *border_combined=nullptr;
+    int nnz_capacity=0;
+    int index=0;
     //COO representation of out_matrix
-    int *out_row;
-    int *out_col;
-    int *out_value;
-    int *out_combined;
-    int out_nnz_capacity;
-    int out_index;
+    int *out_row=nullptr;
+    int *out_col=nullptr;
+    int *out_value=nullptr;
+    int *out_combined=nullptr;
+    int out_nnz_capacity=0;
+    int out_index=0;
 
-    int *global_out_combined; //Combined array of all out COOs at the root
-    int *global_border_combined; //Combined array of all border COOs at the root
-    int sizeof_borders; //Total num of nodes in global_border_combined. Maintained ar root
-    int sizeof_outs; //Total num of nodes in global_out_combined. maintained at root
+    int *global_out_combined=nullptr; //Combined array of all out COOs at the root
+    int *global_border_combined=nullptr; //Combined array of all border COOs at the root
+    int sizeof_borders=0; //Total num of nodes in global_border_combined. Maintained ar root
+    int sizeof_outs=0; //Total num of nodes in global_out_combined. maintained at root
 
     int global_border_matrix[height * np][width]; //Stored only in the root. Contains border matrices from all partitions stacked on top of each other.
     int global_out_matrix[height * np][width]; //Similarly for out_matrix
@@ -112,20 +113,22 @@ public:
 	}
 	~Basic()
 	{
-		delete[] border_row;
-		delete[] border_col;
-		delete[] border_value;
-		delete[] border_combined;
-		delete[] global_border_combined;
+	    /*
+		DELETE_1DARRAY(border_row);
+		DELETE_1DARRAY(border_col);
+		DELETE_1DARRAY(border_value);
+		DELETE_1DARRAY(border_combined);
+		DELETE_1DARRAY(global_border_combined);
 
-		delete[] out_row;
-		delete[] out_col;
-		delete[] out_value;
-		delete[] out_combined;
-		delete[] global_out_combined;
+		DELETE_1DARRAY(out_row);
+		DELETE_1DARRAY(out_col);
+		DELETE_1DARRAY(out_value);
+		DELETE_1DARRAY(out_combined);
+		DELETE_1DARRAY(global_out_combined);
 
-		delete[] global_result;
-		delete[] local_result;
+		DELETE_1DARRAY(global_result);
+		DELETE_1DARRAY(local_result);
+	     */
 	}
 
 
