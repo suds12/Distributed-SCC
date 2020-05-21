@@ -1,7 +1,8 @@
 # These are Sudharshan-only settings, which can be changed in the environment for correct locations elsewhere
 mpi_base?=/usr/local/packages/mpich/3.2/gcc-5
 shared_scc?=/home/users/ssriniv2/SCC/SharedSCC
-CFLAGS=-g -std=c++11 -g3
+DEBUG?=0
+CFLAGS=-g -std=c++11 -g3 -DDEBUG=$(DEBUG)
 
 ifeq ($(BOOST_ROOT),)
   BOOST_ROOT=/home/users/ssriniv2/packages/boost_1_72_0
@@ -21,19 +22,18 @@ ifdef PETSC_DIR
    mpi_base=$(PETSC_DIR)/$(PETSC_ARCH)
    CFLAGS+= -I$(PETSC_DIR)/include -DHAVE_PETSC
    LIBS+=-lpetsc $(PETSC_EXTERNAL_LIB_BASIC)
-   RUNOPTS+=-log_view
+   #RUNOPTS+=-log_view
 endif
 
 CC=$(mpi_base)/bin/mpic++
 run=$(mpi_base)/bin/mpirun
 
-%.o : %.cpp
-	$(CC) $(CFLAGS) -c -w $< 
+all: main
 
-all: main.o 
-	$(CC) $(CFLAGS) -o main  $^ $(LDFLAGS) $(LIBS)
+main: main.cpp update.cpp $(WILDCARD *.hpp)
+	$(CC) $(CFLAGS) -o $@  $< $(LDFLAGS) $(LIBS)
 
-run:
+run: main
 	$(run) $(MPIRUNOPTS) -np 3 ./main input/distributed/g2/input_test input/distributed/g2/sccmap_test input/distributed/g2/change_test 2 1 input/distributed/g2/partition 3 $(RUNOPTS)
 
 run1:
@@ -42,10 +42,10 @@ run1:
 sp:
 	$(run) $(MPIRUNOPTS) -np 1 ./main input/distributed/inputgraph input/distributed/sccmap input/distributed/change 11 1 input/distributed/partition1 1 $(RUNOPTS)
 
-orkut:
+orkut: main
 	$(run) $(MPIRUNOPTS) -np 8 ./main ../orkut/input.txt ../orkut/sccmap ../orkut/changes_orkut 2 1 ../orkut/partition_8.txt 3 $(RUNOPTS)
 
-facebook:
+facebook: main
 	$(run) $(MPIRUNOPTS) -np 3 ./main input/facebook/facebook_combined.txt input/facebook/scc_map input/facebook/changes 2 1 input/facebook/partition_facebook.txt 3 $(RUNOPTS)
 
 clean:

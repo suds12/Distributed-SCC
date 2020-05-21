@@ -16,10 +16,6 @@
 #define global_modifier 9000
 
 
-
-
-
-
 void perform_scc(char *argv[], Basic& basic, Graph& graph, int world_rank)   //Shared memory scc
 {
 	
@@ -274,12 +270,14 @@ void send_meta(char *argv[], Basic& basic, int world_rank, int world_size)
 
 	basic.sizeof_borders=accumulate(counts , counts+world_size , basic.sizeof_borders);
 	//cout<<"&&"<<basic.sizeof_borders;
-	// ofstream fout("dump/global_combined" );
-	// if (world_rank == 0)
-	// {
-	// 	for(int i=0;i<basic.sizeof_borders;i++)
-	// 		fout<<basic.global_border_combined[i]<<" ";
-	// }
+        if (DEBUG) {
+	    ofstream fout("dump/global_combined" );
+
+	    if (world_rank == 0) {
+	 	for(int i=0;i<basic.sizeof_borders;i++)
+	 		fout<<basic.global_border_combined[i]<<" ";
+	    }
+        }
 
 	//----send out combined ------------------------
 
@@ -312,41 +310,58 @@ void send_meta(char *argv[], Basic& basic, int world_rank, int world_size)
 
 void update_borders(char *argv[], Basic& basic, int world_rank, int world_size)
 {
-    /*Each process needs to send its two 1d arrays, one for border_combined and another for out_combined defined in the above function.
-    The challenge here is that root process doesn't know in advance how many processes are sending so doesn't know how long to wait.
-    There are a few ways you could do this. I am currently doing #4
-    1) The way mentioned in the stack overflow https://stackoverflow.com/questions/53592970/mpi-receiving-data-from-an-unknown-number-of-ranks
-    2) Do an IRecv/ISend and then call a barrier once you know all processes that wanted to send, have, then Recv the right number of messages. This is a danger cause the MPI buffer might fill up if there are too many processes sending. Also might be a bottleneck cause of the barrier.
-    3) Use one-sided communication (MPI 3 standard). Each process that wants to send would just have a space where it says “here is my stuff,” but you’d need a barrier at the end, and also extra memory for every process, since you don’t know which processes will call a put and so don’t want processes trampling over each other’s memory
-    4) If you were going to, say, receive messages from rougly 1/2 the processes it would be better to use an MPI_Gather and just have some ranks send nothing.*/
+    /* 
+        This is an alternative to send_meta. Instead of collecting data through the root, all processes
+        exchange their border information.  At the end, all tasks have identical global border information.
+
+        This is accomplished through a two-step process:
+         - First, all the sizes are gathered to determine the global border size. 
+         - Next, each task sends its border info to all other tasks.
+    */
 
     //---send border combined------
-	int* counts = new int[world_size];
-	int size_to_send = basic.index*2;
+    int* counts = new int[world_size];
+    int size_to_send = basic.index*2;
 
-	// Each process tells the everyone else how many elements it holds
-	MPI_Allgather(&size_to_send, 1, MPI_INT, counts, 1, MPI_INT, MPI_COMM_WORLD);
-
-	// Displacements in the receive buffer for MPI_GATHERV
-	int *disps = new int[world_size];
-
-	// Displacement for the first chunk of data - 0
-	for (int i = 0; i < world_size; i++)
-	   disps[i] = (i > 0) ? (disps[i-1] + counts[i-1]) : 0;
+    // Each process tells the everyone else how many elements it holds
+    MPI_Allgather(&size_to_send, 1, MPI_INT, counts, 1, MPI_INT, MPI_COMM_WORLD);
 
 
-	// Place to hold the gathered data, replicated in all tasks!
-	basic.global_border_combined = new int[disps[world_size-1] + counts[world_size-1]];
-	// Collect everything
-    MPI_Allgatherv(basic.out_combined, size_to_send, MPI_INT, basic.global_out_combined, counts, disps, MPI_INT, MPI_COMM_WORLD);
+    // Displacements in the receive buffer for MPI_GATHERV
+    int *disps = new int[world_size];
 
-	//cout<<"&&"<<basic.sizeof_borders;
-	// ofstream fout("dump/global_combined" );
-	// if (world_rank == 0)
-	// {
-	// 	for(int i=0;i<basic.sizeof_borders;i++)
-	// 		fout<<basic.global_border_combined[i]<<" ";
-	// }
+    // Displacement for the first chunk of data - 0
+    for (int i = 0; i < world_size; i++)
+        disps[i] = (i > 0) ? (disps[i-1] + counts[i-1]) : 0;
+        for(int i=0; i< world_size; i++) {
+            MPI_Barrier(MPI_COMM_WORLD);
+            if (world_rank == i) {
+                cout << world_rank << " counts : " << counts[0] << " " << counts[1] << " " << counts[2]<< endl; 
+                cout << world_rank << " disps : " << disps[0] << " " << disps[1] << " " << disps[2]<< endl; 
+        }}
+
+    // Place to hold the gathered data, replicated in all tasks!
+    basic.sizeof_borders=accumulate(counts , counts+world_size , basic.sizeof_borders);
+    basic.global_border_combined = new int[basic.sizeof_borders];
+
+    // Collect everything, at the end, all tasks have identical basic.global_border_combined arrays
+    MPI_Allgatherv(basic.out_combined, size_to_send, MPI_INT, basic.global_border_combined, counts, disps, MPI_INT, MPI_COMM_WORLD);
+
+
+    if (DEBUG) {
+	cout<<"Global border size " << world_rank << ": " << basic.sizeof_borders << endl;
+        for(int i=0; i< world_size; i++) {
+            MPI_Barrier(MPI_COMM_WORLD);
+            if (world_rank == i) {
+	        ofstream fout("dump/global_combined",  std::ofstream::out | std::ofstream::app);
+                fout << "Local Border " << world_rank << ": ";
+                for(int i = 0; i < size_to_send; i++) fout << basic.out_combined[i] << " ";
+                fout << endl << "COMBINED BORDERS " << world_rank << ": ";
+                for(int i=0;i<basic.sizeof_borders;i++) fout << basic.global_border_combined[i] << " ";
+                fout << endl;
+            }
+         }
+     }
 }
 
 void make_meta_graph(char *argv[], Basic& basic, MetaGraph& meta_graph, int world_rank)

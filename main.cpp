@@ -12,7 +12,6 @@
 #include "reader.hpp"
 #include "utils.hpp"
 
-#define DEBUG 0
 
 using namespace std;
 

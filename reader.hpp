@@ -12,7 +12,6 @@
 
 #define chunk_height 3
 #define chunk_width 5
-#define num_partitions 5
 #define root 0
 
 using namespace std;
