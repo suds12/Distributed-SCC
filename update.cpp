@@ -308,6 +308,43 @@ void send_meta(char *argv[], Basic& basic, int world_rank, int world_size)
                                    
 }
 
+void update_arrays(int local_size, int world_rank, int world_size, int *local_array, int **global_array, int *global_size, string msg="") {
+
+    int* counts = new int[world_size];
+
+    // Each process tells the everyone else how many elements it holds
+    MPI_Allgather(&local_size, 1, MPI_INT, counts, 1, MPI_INT, MPI_COMM_WORLD);
+
+    // Displacements in the receive buffer for MPI_ALLGATHERV
+    int *disps = new int[world_size];
+
+    // Displacement for the first chunk of data - 0
+    for (int i = 0; i < world_size; i++)
+        disps[i] = (i > 0) ? (disps[i-1] + counts[i-1]) : 0;
+
+    // Place to hold the gathered data, replicated in all tasks!
+    *global_size = accumulate(counts , counts+world_size , 0);
+    *global_array = new int[*global_size];
+
+    // Collect everything, at the end, all tasks have identical global arrays
+    MPI_Allgatherv(local_array, local_size, MPI_INT, *global_array, counts, disps, MPI_INT, MPI_COMM_WORLD);
+
+    if (DEBUG) {
+	cout<<"Global border size " << world_rank << ": " << *global_size << endl;
+        for(int i=0; i< world_size; i++) {
+            MPI_Barrier(MPI_COMM_WORLD);
+            if (world_rank == i) {
+	        ofstream fout("dump/global_combined",  std::ofstream::out | std::ofstream::app);
+                fout << "Local " << msg << " " << world_rank << ": ";
+                for(int i = 0; i < local_size; i++) fout << local_array[i] << " ";
+                fout << endl << "COMBINED " << msg << " " << world_rank << ": ";
+                for(int i=0;i<*global_size;i++) fout << (*global_array)[i] << " ";
+                fout << endl;
+            }
+         }
+     }
+}
+
 void update_borders(char *argv[], Basic& basic, int world_rank, int world_size)
 {
     /* 
@@ -319,49 +356,13 @@ void update_borders(char *argv[], Basic& basic, int world_rank, int world_size)
          - Next, each task sends its border info to all other tasks.
     */
 
-    //---send border combined------
-    int* counts = new int[world_size];
-    int size_to_send = basic.index*2;
+    // ---update border combined------
+    update_arrays(basic.index*2, world_rank, world_size, basic.border_combined, &basic.global_border_combined, &basic.sizeof_borders, "borders"); 
 
-    // Each process tells the everyone else how many elements it holds
-    MPI_Allgather(&size_to_send, 1, MPI_INT, counts, 1, MPI_INT, MPI_COMM_WORLD);
-
-
-    // Displacements in the receive buffer for MPI_GATHERV
-    int *disps = new int[world_size];
-
-    // Displacement for the first chunk of data - 0
-    for (int i = 0; i < world_size; i++)
-        disps[i] = (i > 0) ? (disps[i-1] + counts[i-1]) : 0;
-        for(int i=0; i< world_size; i++) {
-            MPI_Barrier(MPI_COMM_WORLD);
-            if (world_rank == i) {
-                cout << world_rank << " counts : " << counts[0] << " " << counts[1] << " " << counts[2]<< endl; 
-                cout << world_rank << " disps : " << disps[0] << " " << disps[1] << " " << disps[2]<< endl; 
-        }}
-
-    // Place to hold the gathered data, replicated in all tasks!
-    basic.sizeof_borders=accumulate(counts , counts+world_size , basic.sizeof_borders);
-    basic.global_border_combined = new int[basic.sizeof_borders];
-
-    // Collect everything, at the end, all tasks have identical basic.global_border_combined arrays
-    MPI_Allgatherv(basic.out_combined, size_to_send, MPI_INT, basic.global_border_combined, counts, disps, MPI_INT, MPI_COMM_WORLD);
+    // --- update out combined --------
+    update_arrays(basic.out_index*2, world_rank, world_size, basic.out_combined, &basic.global_out_combined, &basic.sizeof_outs, "outs"); 
 
 
-    if (DEBUG) {
-	cout<<"Global border size " << world_rank << ": " << basic.sizeof_borders << endl;
-        for(int i=0; i< world_size; i++) {
-            MPI_Barrier(MPI_COMM_WORLD);
-            if (world_rank == i) {
-	        ofstream fout("dump/global_combined",  std::ofstream::out | std::ofstream::app);
-                fout << "Local Border " << world_rank << ": ";
-                for(int i = 0; i < size_to_send; i++) fout << basic.out_combined[i] << " ";
-                fout << endl << "COMBINED BORDERS " << world_rank << ": ";
-                for(int i=0;i<basic.sizeof_borders;i++) fout << basic.global_border_combined[i] << " ";
-                fout << endl;
-            }
-         }
-     }
 }
 
 void make_meta_graph(char *argv[], Basic& basic, MetaGraph& meta_graph, int world_rank)
