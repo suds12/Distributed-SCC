@@ -77,8 +77,8 @@ public:
     int global_out_matrix[height * np][width]; //Similarly for out_matrix
     map<int,int>global_border_map; //key=border vertex, val=local scc_id(made unique by adding with task_modifier)
     vector<int> global_scc; //Stores the scc result for meta graph.  
-    int *global_result; //array format for global_scc to send back to every. Can probably be removed as this is unnecessary conversion
-    int *local_result;
+    int *global_result=nullptr; //array format for global_scc to send back to every. Can probably be removed as this is unnecessary conversion
+    int *local_result=nullptr;
     int total_border_count;
 
 	unordered_set<int> meta_nodes; //A set maintained in root process that holds the list of meta nodes
@@ -126,7 +126,7 @@ public:
 		DELETE_1DARRAY(global_out_combined);
 
 		// This causes a crash with signal 6
-		//DELETE_1DARRAY(global_result);
+		DELETE_1DARRAY(global_result);
 		DELETE_1DARRAY(local_result);
 
 	}
