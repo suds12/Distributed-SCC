@@ -309,6 +309,10 @@ void send_meta(char *argv[], Basic& basic, int world_rank, int world_size)
 }
 
 void update_arrays(int local_size, int world_rank, int world_size, int *local_array, int **global_array, int *global_size, string msg="") {
+    /* 
+        Given local arrays of varying sizes, this function combines them into a single global array containing
+        all the elements and replicates that array on all tasks.
+    */
 
     int* counts = new int[world_size];
 
