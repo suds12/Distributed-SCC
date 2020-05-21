@@ -7,8 +7,7 @@ LIBS = /home/users/ssriniv2/packages/boost_1_72_0/stage/lib/libboost_serializati
 
 # Comment out just the PETSC_DIR line below to disable PETSc
 PETSC_DIR?=/shared/soft/petsc-git
-PETSC_ARCH?=arch-linux2-c-opt
-#PETSC_ARCH?=arch-linux2-c-debug
+PETSC_ARCH?=arch-linux2-c-debug
 ifdef PETSC_DIR
    include ${PETSC_DIR}/lib/petsc/conf/variables
    mpi_base=$(PETSC_DIR)/$(PETSC_ARCH)
