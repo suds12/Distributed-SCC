@@ -31,7 +31,8 @@ public:
  //        ar & input_graph;
  //    }
 
-	int node_count;
+	int edge_count;
+	unordered_set<int> nodes;
 	map<int, int> partition_of_vertex; //Hashmap of partition id for each vertex
 	map<int, int> init_scc_of_vertex; //Hashmap of initial scc id for each vertex. This is read from sccmap file.
 	unordered_set<int> border_vertices;  //Hashset of border vertices. Each process maintains its own.
@@ -93,7 +94,7 @@ public:
 		//Definitely not the optimal way of doing it. Should work on improving this
         int nrows = height;  //num of local SCC. Set it to appropriate vale
         int ncols = width;  //Max size of borders of SCC
-        node_count = 0;
+        edge_count = 0;
 		// int** border_matrix = new int*[nrows];
 		// int** out_matrix = new int*[nrows];
 		// for(int i = 0; i < nrows; ++i)

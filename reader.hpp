@@ -112,7 +112,10 @@ void read_graph(char *argv[], Basic &basic, Graph& graph, int world_rank)
 				{
 					basic.input_graph.push_back(node1);
 					basic.input_graph.push_back(node2);
-					basic.node_count+=2;
+					basic.edge_count++;
+					basic.nodes.insert(node1);
+					basic.nodes.insert(node2);
+
 					boost::add_edge (node1, node2, graph);  //Storing in boost ajacency list.
 					//store border vertices and store the vertices a specific border vertex has outgoing edges to. This is stored seperately and is only used for merging. Not included while performing local SCC.
 					if(world_rank == basic.partition_of_vertex.at(node1))
@@ -156,7 +159,9 @@ void read_graph(char *argv[], Basic &basic, Graph& graph, int world_rank)
 				{
 					basic.input_graph.push_back(node1);
 					basic.input_graph.push_back(node2);
-					basic.node_count+=2;
+					basic.edge_count++;
+					basic.nodes.insert(node1);
+					basic.nodes.insert(node2);
 					boost::add_edge (node1, node2, graph);   //boost graph
 				}
             }
@@ -244,7 +249,9 @@ void read_changes(char *argv[], Basic &basic, Graph& changes, Graph& graph, int 
 				{
 					basic.input_graph.push_back(node1);
 					basic.input_graph.push_back(node2);
-					basic.node_count+=2;
+					basic.edge_count++;
+					basic.nodes.insert(node1);
+					basic.nodes.insert(node2);
 					boost::add_edge (node1, node2, changes);   
 					boost::add_edge (node1, node2, graph); //Adding it also to input graph for now to recompute changes. Should remove it when the shared SCC is ready.
 

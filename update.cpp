@@ -28,6 +28,9 @@ void perform_scc(char *argv[], Basic& basic, Graph& graph, int world_rank)   //S
 
 	//Replace this with function call for shared SCC (From Sriram). Tha input parameters would be the allocated graph and SCC mapping. 
 	//input => basic.input_graph
+	//num of edges = basic.edge_count
+	//num of nodes = basic.nodes.size()
+	
 
 	size_t num_components = boost::strong_components (graph, &basic.local_scc[0]); //output to local_scc
 
