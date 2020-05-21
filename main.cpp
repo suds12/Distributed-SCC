@@ -10,7 +10,9 @@
 //#include "main_code.cpp"
 #include "update.cpp"
 #include "reader.hpp"
+#include "utils.hpp"
 
+#define DEBUG 0
 
 using namespace std;
 
@@ -18,14 +20,27 @@ using namespace std;
 vector<set <int> > sccSets;
 int world_rank, world_size, local_size;
 
-
+static char help[] = "Computes distributed-memory parallel strongly connected components for dynamic graphs.\n\n";
 
 int main(int argc, char *argv[])
 {
      std::chrono::time_point<std::chrono::system_clock> start, end;
     //-----------------------------------
 	// Initialize the MPI environment
+#ifdef HAVE_PETSC
+    PetscInitialize(&argc,&argv,NULL,help);
+    PetscLogEvent event_read_input, event_local_scc, event_create_meta, event_init_coo, event_make_meta_par, event_make_meta_seq; 
+    PetscLogStage stage_init, stage_update; 
+    PetscLogStageRegister("Initialization", &stage_init); 
+    PetscLogStageRegister("Update", &stage_update); 
+    PetscLogEventRegister("Read input",0,&event_read_input); 
+    PetscLogEventRegister("Initial SCC",0,&event_local_scc); 
+    PetscLogEventRegister("Init COO",0,&event_init_coo);
+    PetscLogEventRegister("Metagraph par",0,&event_make_meta_par);
+    PetscLogEventRegister("Metagraph seq",0,&event_make_meta_seq);
+#else
     MPI_Init(NULL, NULL);
+#endif
     // Get the number of processes
     //int world_size;
     MPI_Comm_size(MPI_COMM_WORLD, &world_size);
@@ -41,6 +56,10 @@ int main(int argc, char *argv[])
     Graph graph;
     Graph changes;
     MetaGraph meta_graph;
+
+    log_stage_begin(stage_init);
+    log_begin(event_read_input);
+
     cout<<"reading partition from rank "<<world_rank<<endl;
     read_partitions(argv,basic,graph);
 
@@ -49,6 +68,9 @@ int main(int argc, char *argv[])
 
     cout<<"reading changes from rank "<<world_rank<<endl;
     read_changes(argv,basic,changes,graph,world_rank);
+
+    log_end(event_read_input);
+    log_stage_end();
 
     //serialize_basic(basic, world_rank);
 
@@ -61,40 +83,54 @@ int main(int argc, char *argv[])
     MPI_Barrier(MPI_COMM_WORLD);
 
     //start timer
-    start = std::chrono::system_clock::now();
-
     cout<<"Performing initial SCC from rank "<<world_rank<<endl;
+    start = std::chrono::system_clock::now();
+    log_stage_begin(stage_update);
+
+    log_begin(event_local_scc);
+
     perform_scc(argv,basic,graph,world_rank);
 
-    
-    
+    log_end(event_local_scc);
 
-    cout<<"Initialisizng COO from rank "<<world_rank<<" for "<<basic.total_border_count<<" border vertices"<<endl;
+    if (DEBUG) cout<<"Initialisizng COO from rank "<<world_rank<<" for "<<basic.total_border_count<<" border vertices"<<endl;
+
+    log_begin(event_init_coo);
     init_coo(basic);
+    log_end(event_init_coo);
 
-    cout<<"make meta vertex from rank "<<world_rank<<endl;
+    if (DEBUG) cout<<"make meta vertex from rank "<<world_rank<<endl;  // should not have system calls in timed regions!
+    log_begin(event_make_meta_par);
     make_meta(argv,basic,graph,world_rank);
 
-    cout<<"preparing to send from rank "<<world_rank<<endl;
+    if (DEBUG) cout<<"preparing to send from rank "<<world_rank<<endl;
     prepare_to_send(basic,world_rank);
 
-    cout<<"send meta vertex from rank "<<world_rank<<endl;
+    if (DEBUG) cout<<"send meta vertex from rank "<<world_rank<<endl;
     send_meta(argv,basic,world_rank,world_size);
+    log_end(event_make_meta_par);
+
+    log_begin(event_make_meta_seq);
+
     if(world_rank==0)
     {
-        cout<<"make meta graph from rank "<<world_rank<<endl;
+        if (DEBUG) cout<<"make meta graph from rank "<<world_rank<<endl;
         make_meta_graph(argv,basic,meta_graph,world_rank);
 
-        cout<<"recompute SCC from rank "<<world_rank<<endl;
+        if (DEBUG) cout<<"recompute SCC from rank "<<world_rank<<endl;
         recompute_scc(basic,meta_graph,world_rank);
 
-        cout<<"creating result from rank "<<world_rank<<endl;
+        if (DEBUG) cout<<"creating result from rank "<<world_rank<<endl;
         create_result(basic,meta_graph,world_rank);
 
     }
-    cout<<"scatter results from rank "<<world_rank<<endl;
+    if (DEBUG) cout<<"scatter results from rank "<<world_rank<<endl;
+
+
     scatter_global(basic,meta_graph,world_rank);
 
+    log_end(event_make_meta_seq);
+    log_stage_end();
     end = std::chrono::system_clock::now();
     std::chrono::duration<double> elapsed_seconds = end - start;
     std::time_t end_time = std::chrono::system_clock::to_time_t(end);
@@ -105,8 +141,11 @@ int main(int argc, char *argv[])
     }
 
 
-
     // display(basic,graph,world_rank);
-  	MPI_Finalize();
-	return 0;
+#ifdef HAVE_PETSC
+    PetscFinalize();
+#else
+    MPI_Finalize();
+#endif
+    return 0;
 }
