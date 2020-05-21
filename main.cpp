@@ -50,7 +50,7 @@ int main(int argc, char *argv[])
     cout<<"reading changes from rank "<<world_rank<<endl;
     read_changes(argv,basic,changes,graph,world_rank);
 
-    //serialize_basic(basic);
+    //serialize_basic(basic, world_rank);
 
     // cout<<"reading sccmap from rank "<<world_rank<<endl;
     // read_sccmap(argv,basic,world_rank);

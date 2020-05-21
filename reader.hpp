@@ -112,6 +112,7 @@ void read_graph(char *argv[], Basic &basic, Graph& graph, int world_rank)
 				{
 					basic.input_graph.push_back(node1);
 					basic.input_graph.push_back(node2);
+					basic.node_count+=2;
 					boost::add_edge (node1, node2, graph);  //Storing in boost ajacency list.
 					//store border vertices and store the vertices a specific border vertex has outgoing edges to. This is stored seperately and is only used for merging. Not included while performing local SCC.
 					if(world_rank == basic.partition_of_vertex.at(node1))
@@ -155,6 +156,7 @@ void read_graph(char *argv[], Basic &basic, Graph& graph, int world_rank)
 				{
 					basic.input_graph.push_back(node1);
 					basic.input_graph.push_back(node2);
+					basic.node_count+=2;
 					boost::add_edge (node1, node2, graph);   //boost graph
 				}
             }
@@ -240,6 +242,9 @@ void read_changes(char *argv[], Basic &basic, Graph& changes, Graph& graph, int 
             	//Here we allocate an edge only to the process that holds both the vertices
 				if(world_rank == basic.partition_of_vertex.at(node1))
 				{
+					basic.input_graph.push_back(node1);
+					basic.input_graph.push_back(node2);
+					basic.node_count+=2;
 					boost::add_edge (node1, node2, changes);   
 					boost::add_edge (node1, node2, graph); //Adding it also to input graph for now to recompute changes. Should remove it when the shared SCC is ready.
 
@@ -278,10 +283,10 @@ void read_sccmap(char *argv[], Basic &basic, int world_rank)
     }
 }
 
-void serialize_basic(Basic basic)
+void serialize_basic(Basic basic, int world_rank)
 {
-	vector<int> input_graph = basic.input_graph;
-	// ofstream ofs("Basic_binary");
+	//vector<int> input_graph = basic.input_graph;
+	//ofstream ofs("archived_inputs/input_graph_" + to_string(world_rank));
 	// // save data to archive
  //    {
  //        boost::archive::text_oarchive oa(ofs);

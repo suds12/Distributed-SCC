@@ -6,6 +6,7 @@
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/strong_components.hpp>
 #include <numeric>
+#include <vector>
 #include "reader.hpp"
 
 #define chunk_height 3
@@ -26,6 +27,8 @@ void perform_scc(char *argv[], Basic& basic, Graph& graph, int world_rank)   //S
 	int nodes=11;
 
 	//Replace this with function call for shared SCC (From Sriram). Tha input parameters would be the allocated graph and SCC mapping. 
+	//input => basic.input_graph
+
 	size_t num_components = boost::strong_components (graph, &basic.local_scc[0]); //output to local_scc
 
 	//Additional conversions. Don't time
