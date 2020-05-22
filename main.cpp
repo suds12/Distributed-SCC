@@ -107,18 +107,18 @@ int main(int argc, char *argv[])
 
     if (DEBUG) cout<<"send meta vertex from rank "<<world_rank<<endl;
     //send_meta(argv,basic,world_rank,world_size);
-    update_borders(argv,basic,world_rank,world_size);
+    update_meta_graph(argv,basic,meta_graph,world_rank,world_size);
     log_end(event_make_meta_par);
 
     log_begin(event_make_meta_seq);
 
     if(world_rank==0)
     {
-        if (DEBUG) cout<<"make meta graph from rank "<<world_rank<<endl;
-        make_meta_graph(argv,basic,meta_graph,world_rank);
+        //if (DEBUG) cout<<"make meta graph from rank "<<world_rank<<endl;
+        //make_meta_graph(argv,basic,meta_graph,world_rank);
 
-        if (DEBUG) cout<<"recompute SCC from rank "<<world_rank<<endl;
-        recompute_scc(basic,meta_graph,world_rank);
+        //if (DEBUG) cout<<"recompute SCC from rank "<<world_rank<<endl;
+        //recompute_scc(basic,meta_graph,world_rank);
 
         if (DEBUG) cout<<"creating result from rank "<<world_rank<<endl;
         create_result(basic,meta_graph,world_rank);

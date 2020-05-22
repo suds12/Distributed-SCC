@@ -308,30 +308,37 @@ void send_meta(char *argv[], Basic& basic, int world_rank, int world_size)
                                    
 }
 
-void update_arrays(int local_size, int world_rank, int world_size, int *local_array, int **global_array, int *global_size, string msg="") {
+void update_arrays(int local_size, int world_rank, int world_size, int *local_array, int **global_array, int *global_size, 
+                   bool to_root=false,  string msg="") {
     /* 
         Given local arrays of varying sizes, this function combines them into a single global array containing
-        all the elements and replicates that array on all tasks.
+        all the elements and replicates that array on all tasks if to_root is false.
     */
 
     int* counts = new int[world_size];
+    int* disps;
 
-    // Each process tells the everyone else how many elements it holds
-    MPI_Allgather(&local_size, 1, MPI_INT, counts, 1, MPI_INT, MPI_COMM_WORLD);
+    // Each process tells everyone else (or root) how many elements it holds
+    if (to_root) MPI_Gather(&local_size, 1, MPI_INT, counts, 1, MPI_INT, root, MPI_COMM_WORLD);
+    else MPI_Allgather(&local_size, 1, MPI_INT, counts, 1, MPI_INT, MPI_COMM_WORLD);
 
-    // Displacements in the receive buffer for MPI_ALLGATHERV
-    int *disps = new int[world_size];
+    if ( (to_root == false) || (to_root && world_rank == 0)) {
 
-    // Displacement for the first chunk of data - 0
-    for (int i = 0; i < world_size; i++)
-        disps[i] = (i > 0) ? (disps[i-1] + counts[i-1]) : 0;
+        // Displacements in the receive buffer for MPI_ALLGATHERV
+        disps = new int[world_size];
 
-    // Place to hold the gathered data, replicated in all tasks!
-    *global_size = accumulate(counts , counts+world_size , 0);
-    *global_array = new int[*global_size];
+        // Displacement for the first chunk of data - 0
+        for (int i = 0; i < world_size; i++)
+            disps[i] = (i > 0) ? (disps[i-1] + counts[i-1]) : 0;
 
-    // Collect everything, at the end, all tasks have identical global arrays
-    MPI_Allgatherv(local_array, local_size, MPI_INT, *global_array, counts, disps, MPI_INT, MPI_COMM_WORLD);
+        // Place to hold the gathered data, replicated in all tasks!
+        *global_size = accumulate(counts , counts+world_size , 0);
+        *global_array = new int[*global_size];
+    }
+
+    // Collect everything, at the end, all tasks (or root) have identical global arrays
+    if (to_root) MPI_Gatherv(local_array, local_size, MPI_INT, *global_array, counts, disps, MPI_INT, root, MPI_COMM_WORLD);
+    else MPI_Allgatherv(local_array, local_size, MPI_INT, *global_array, counts, disps, MPI_INT, MPI_COMM_WORLD);
 
     if (DEBUG) {
 	cout<<"Global border size " << world_rank << ": " << *global_size << endl;
@@ -345,11 +352,12 @@ void update_arrays(int local_size, int world_rank, int world_size, int *local_ar
                 for(int i=0;i<*global_size;i++) fout << (*global_array)[i] << " ";
                 fout << endl;
             }
+            if (to_root) break;
          }
      }
 }
 
-void update_borders(char *argv[], Basic& basic, int world_rank, int world_size)
+void update_meta_graph(char *argv[], Basic& basic, MetaGraph& meta_graph, int world_rank, int world_size)
 {
     /* 
         This is an alternative to send_meta. Instead of collecting data through the root, all processes
@@ -361,13 +369,53 @@ void update_borders(char *argv[], Basic& basic, int world_rank, int world_size)
     */
 
     // ---update border combined------
-    update_arrays(basic.index*2, world_rank, world_size, basic.border_combined, &basic.global_border_combined, &basic.sizeof_borders, "borders"); 
+    update_arrays(basic.index*2, world_rank, world_size, basic.border_combined, &basic.global_border_combined, &basic.sizeof_borders, false, "borders"); 
 
     // --- update out combined --------
-    update_arrays(basic.out_index*2, world_rank, world_size, basic.out_combined, &basic.global_out_combined, &basic.sizeof_outs, "outs"); 
+    // update_arrays(basic.out_index*2, world_rank, world_size, basic.out_combined, &basic.global_out_combined, &basic.sizeof_outs, "outs"); 
+
+    //Store border_combined in hasmap. key=border vertex and value= respective meta vertex(local SCC ID) 
+    for(int i=0; i<basic.sizeof_borders; i+=2) {
+        basic.global_border_map.insert({basic.global_border_combined[i+1], basic.global_border_combined[i]}); 
+            //key=border vertex, val=local scc_id(made unique by adding with task_modifier)
+    }
+
+    //For each out_vertex check which meta vertex it belongs to and make the connection between the 2 meta vertices.
+    int number_new_vertices = basic.out_index*2;
+    vector<int> new_meta_vertices(number_new_vertices);
+    for(int i=0; i<number_new_vertices; i+=2) {
+        // Vertices defining the new edges
+        new_meta_vertices[i] = basic.out_combined[i];
+        new_meta_vertices[i+1] = basic.global_border_map[basic.out_combined[i +1]];
+     }
+
+    // Send the new metagraph edge vertices to root
+    update_arrays(number_new_vertices, world_rank, world_size, basic.out_combined, &basic.global_out_combined, &basic.sizeof_outs, true, "new meta vertices"); 
+
+    // Here we recompute the SCC for the meta graph. This should also be optimzed to perform for discontinues vertices. The meta vertex ID would be in order of large numbers to make sure the global SCC ID is distinguishable from the local SCC ID. But current boost implementation fills in the gaps and calculates SCC for evey index within that range.  This wouldn't affect the overall result but would be musch slower than just calculating SCC for the vertices present. Doing that is a little more complecated with boost but I will figure that out.
+    if (world_rank == root) {
+	for (int i=0; i<basic.sizeof_outs; i+=2) {
+            boost::add_edge(basic.global_out_combined[i], basic.global_border_map[basic.global_out_combined[i +1]], meta_graph);
+        }
+
+        basic.global_scc.reserve(boost::num_vertices (meta_graph));
+
+        size_t num_components = boost::strong_components (meta_graph, &basic.global_scc[0]);
+
+
+        if (DEBUG) {
+            cout<<endl<<"::  "<<num_components;
+
+            for (size_t i = 0; i < boost::num_vertices (meta_graph); ++i) 
+                if(basic.meta_nodes.find(basic.global_scc[i]) != basic.meta_nodes.end()) 
+                    cout << i<<" = "<<basic.global_scc[i] << endl;;
+        }
+
+    } // world_rank == root
 
 
 }
+
 
 void make_meta_graph(char *argv[], Basic& basic, MetaGraph& meta_graph, int world_rank)
 {
@@ -393,6 +441,7 @@ void make_meta_graph(char *argv[], Basic& basic, MetaGraph& meta_graph, int worl
 	
 	
 } 
+
 void recompute_scc(Basic& basic, MetaGraph& meta_graph, int world_rank)
 {
 	/*Here we recompute the SCC for the meta graph. This should also be optimzed to perform for discontinues vertices. The meta vertex ID would be in order of large numbers 
