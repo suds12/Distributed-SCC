@@ -8,7 +8,7 @@ ifeq ($(BOOST_ROOT),)
   LIBS=/home/users/ssriniv2/packages/boost_1_72_0/stage/lib/libboost_serialization.a
 else
   LDFLAGS=-L$(BOOST_ROOT)/lib -Wl,-rpath,$(BOOST_ROOT)/lib
-  LIBS=-lboost_serialization-mt
+  LIBS=-lboost_serialization
 endif
 
 CFLAGS+=-I$(BOOST_ROOT) -I$(BOOST_ROOT)/include
