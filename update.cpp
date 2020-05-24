@@ -41,12 +41,12 @@ void perform_scc(char *argv[], Basic& basic, Graph& graph, int world_rank)   //S
        cout <<"edges"<<basic.edge_count<<"\n";
        cout << "num of Nodes"<<basic.nodes.size()<<"\n";
 
-       /*  ofstream myfile;
+        ofstream myfile;
 	std::string name="file_" + std::to_string(world_rank) + ".txt";
     myfile.open (name);
     bool mapping=false;
    
-*/
+
 
        vector <int_int> input;
 
@@ -55,12 +55,13 @@ tmp.first=basic.nodes.size();
 tmp.second=basic.edge_count;
 input.push_back(tmp);
 
-      for(int i=1;i<basic.input_graph.size();i+=2)
+      for(int i=0;i<basic.input_graph.size();i+=2)
 {
-        
-
-            // myfile<<basic.nodes.size()<<" "<< basic.edge_count<<"\n";
-
+         
+          if(i==0)
+            myfile<<basic.nodes.size()<<" "<< basic.edge_count<<"\n";
+          else
+		  myfile<<basic.input_graph[i]<<" "<<basic.input_graph[i+1]<<"\n";
 int_int tmp;
 tmp.first=basic.input_graph[i];
 tmp.second=basic.input_graph[i+1];
@@ -69,19 +70,27 @@ input.push_back(tmp);
 }
 
   
-/*
+
 
     myfile.close();
-
+/*
 
     std::string kimplementation="./scc";
 kimplementation=kimplementation+ " "+name;
 const char *command=kimplementation.c_str();
 system(command);
 */
+/*
+cout<<"worldrank"<<world_rank<<"\n";
+for(int i=0;i<input.size();i++)
+    {
+        cout<<input.at(i).first <<" " << input.at(i).second<<"\n";
+    }
 
+MPI_Barrier(MPI_COMM_WORLD);
 
 vector <int_int> outputVector= performSharedSCC(input);
+
 
 for(int i=0;i<outputVector.size();i++)
     {
@@ -89,8 +98,12 @@ for(int i=0;i<outputVector.size();i++)
     }
 
 cout<<"done SCC Kamesh implementation";
+*/
+MPI_Barrier(MPI_COMM_WORLD);	
 
-	size_t num_components = boost::strong_components (graph, &basic.local_scc[0]); //output to local_scc
+size_t num_components = boost::strong_components (graph, &basic.local_scc[0]); //output to local_scc
+
+
 
 	//Additional conversions. Don't time
 	int temp=0;
