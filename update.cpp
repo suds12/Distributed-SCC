@@ -48,26 +48,28 @@ void perform_scc(char *argv[], Basic& basic, Graph& graph, int world_rank)   //S
    
 */
 
-  /*     for(int i=0;i<basic.input_graph.size();i+=2)
+       vector <int_int> input;
+
+int_int tmp;
+tmp.first=basic.nodes.size();
+tmp.second=basic.edge_count;
+input.push_back(tmp);
+
+      for(int i=1;i<basic.input_graph.size();i+=2)
 {
-         if(i==0)
-	 {
+        
 
-             myfile<<basic.nodes.size()<<" "<< basic.edge_count<<"\n";
+            // myfile<<basic.nodes.size()<<" "<< basic.edge_count<<"\n";
 
-          if(basic.input_graph[i]!=0)
-	  {
-
-           mapping=true;
-
-	  }
-	 }
-	myfile<<basic.input_graph[i]<<" "<<basic.input_graph[i+1] <<"\n";
+int_int tmp;
+tmp.first=basic.input_graph[i];
+tmp.second=basic.input_graph[i+1];
+input.push_back(tmp);
 
 }
 
   
-
+/*
 
     myfile.close();
 
@@ -78,14 +80,15 @@ const char *command=kimplementation.c_str();
 system(command);
 */
 
-vector <int_int > outputVector= performSharedSCC();
+
+vector <int_int> outputVector= performSharedSCC(input);
 
 for(int i=0;i<outputVector.size();i++)
     {
         cout<<outputVector.at(i).first <<" " << outputVector.at(i).second<<"\n";
     }
 
-
+cout<<"done SCC Kamesh implementation";
 
 	size_t num_components = boost::strong_components (graph, &basic.local_scc[0]); //output to local_scc
 

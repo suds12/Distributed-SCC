@@ -337,7 +337,7 @@ else if (TRIM_LEVEL == 2)
 
 
 vector <int_int > outputVector;
-vector <int_int > performSharedSCC()
+vector <int_int > performSharedSCC(vector<int_int> data)
 {
   setbuf(stdout, NULL);
 //  if (argc < 2)
@@ -375,7 +375,7 @@ vector <int_int > performSharedSCC()
     tmp.second=2;
     data1.push_back(tmp);
 
-  read_edge("test.graph", n, m, srcs, dsts,data1);
+  read_edge("test.graph", n, m, srcs, dsts,data);
 
 #if VERBOSE
   elt = timer() - elt;
