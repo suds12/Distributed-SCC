@@ -15,7 +15,7 @@
 #define root1 0
 #define global_modifier 9000
 
-
+#include"mapping.h"
 #include <bits/stdc++.h>
 #include<string>
 #include <sstream>
@@ -43,8 +43,8 @@ void perform_scc(char *argv[], Basic& basic, Graph& graph, int world_rank)   //S
 
         ofstream myfile;
 	std::string name="file_" + std::to_string(world_rank) + ".txt";
-    myfile.open (name);
-    bool mapping=false;
+   // myfile.open (name);
+   
    
 
 
@@ -55,6 +55,11 @@ tmp.first=basic.nodes.size();
 tmp.second=basic.edge_count;
 input.push_back(tmp);
 
+
+
+
+
+/*
       for(int i=0;i<basic.input_graph.size();i+=2)
 {
          
@@ -68,28 +73,42 @@ tmp.second=basic.input_graph[i+1];
 input.push_back(tmp);
 
 }
-
+*/
   
 
-
-    myfile.close();
 /*
+    myfile.close();
+
 
     std::string kimplementation="./scc";
 kimplementation=kimplementation+ " "+name;
 const char *command=kimplementation.c_str();
 system(command);
 */
-/*
-cout<<"worldrank"<<world_rank<<"\n";
-for(int i=0;i<input.size();i++)
-    {
-        cout<<input.at(i).first <<" " << input.at(i).second<<"\n";
-    }
+vector <int_int> initialGraphVector;
+//vector <int_int> outputGraphVector;
 
-MPI_Barrier(MPI_COMM_WORLD);
 
-vector <int_int> outputVector= performSharedSCC(input);
+      for(int i=0;i<basic.input_graph.size();i+=2)
+{
+
+ 
+int_int tmp;
+tmp.first=basic.input_graph[i];
+tmp.second=basic.input_graph[i+1];
+initialGraphVector.push_back(tmp);
+
+}
+
+
+Struct outputValues;
+
+outputValues = mappingZeroIndexing(initialGraphVector);
+
+
+//MPI_Barrier(MPI_COMM_WORLD);
+
+vector <int_int> outputVector= performSharedSCC(outputValues.outputGraphVector);
 
 
 for(int i=0;i<outputVector.size();i++)
@@ -97,9 +116,23 @@ for(int i=0;i<outputVector.size();i++)
         cout<<outputVector.at(i).first <<" " << outputVector.at(i).second<<"\n";
     }
 
+
+ vector<int_int >outputafterReverseSCCmap;
+  for(int i=0;i<outputVector.size();i++)
+    {
+        outputafterReverseSCCmap.push_back(std::pair<int, int>(mapKey(outputValues,outputVector.at(i).first),outputVector.at(i).second));
+    }
+
+  
+    for(int i=0;i<outputafterReverseSCCmap.size();i++)
+    {
+        cout<<outputafterReverseSCCmap.at(i).first<<" "<<outputafterReverseSCCmap.at(i).second<<"\n";
+    }
+
+
 cout<<"done SCC Kamesh implementation";
-*/
-MPI_Barrier(MPI_COMM_WORLD);	
+
+//MPI_Barrier(MPI_COMM_WORLD);	
 
 size_t num_components = boost::strong_components (graph, &basic.local_scc[0]); //output to local_scc
 
