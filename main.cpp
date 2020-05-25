@@ -8,9 +8,9 @@
 #include "merge.hpp"
 #include "basic.hpp"
 //#include "main_code.cpp"
+#include "utils.hpp"
 #include "update.cpp"
 #include "reader.hpp"
-#include "utils.hpp"
 
 
 using namespace std;
@@ -28,8 +28,6 @@ int main(int argc, char *argv[])
 	// Initialize the MPI environment
 #ifdef HAVE_PETSC
     PetscInitialize(&argc,&argv,NULL,help);
-    PetscLogEvent event_read_input, event_local_scc, event_create_meta, event_init_coo, event_make_meta_par, event_make_meta_seq; 
-    PetscLogStage stage_init, stage_update; 
     PetscLogStageRegister("Initialization", &stage_init); 
     PetscLogStageRegister("Update", &stage_update); 
     PetscLogEventRegister("Read input",0,&event_read_input); 
@@ -109,8 +107,6 @@ int main(int argc, char *argv[])
     //send_meta(argv,basic,world_rank,world_size);
     update_meta_graph(argv,basic,meta_graph,world_rank,world_size);
     log_end(event_make_meta_par);
-
-    log_begin(event_make_meta_seq);
 
     if(world_rank==0)
     {

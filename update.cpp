@@ -390,11 +390,12 @@ void update_meta_graph(char *argv[], Basic& basic, MetaGraph& meta_graph, int wo
      }
 
     // Send the new metagraph edge vertices to root
-    update_arrays(number_new_vertices, world_rank, world_size, basic.out_combined, &basic.global_out_combined, &basic.sizeof_outs, true, "new meta vertices"); 
+    update_arrays(number_new_vertices, world_rank, world_size, basic.out_combined, &basic.global_out_combined, &basic.sizeof_outs, true, "new meta vertices");
 
+    log_begin(event_make_meta_seq);
     // Here we recompute the SCC for the meta graph. This should also be optimzed to perform for discontinues vertices. The meta vertex ID would be in order of large numbers to make sure the global SCC ID is distinguishable from the local SCC ID. But current boost implementation fills in the gaps and calculates SCC for evey index within that range.  This wouldn't affect the overall result but would be musch slower than just calculating SCC for the vertices present. Doing that is a little more complecated with boost but I will figure that out.
     if (world_rank == root) {
-	for (int i=0; i<basic.sizeof_outs; i+=2) {
+	    for (int i=0; i<basic.sizeof_outs; i+=2) {
             boost::add_edge(basic.global_out_combined[i], basic.global_border_map[basic.global_out_combined[i +1]], meta_graph);
         }
 
