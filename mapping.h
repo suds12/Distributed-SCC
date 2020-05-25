@@ -161,8 +161,8 @@ Struct mappingZeroIndexing(vector<int_int> initialGraphVector)
         if(max<initialGraphVector.at(i).first)
             max=initialGraphVector.at(i).first;
 
-        if(max<initialGraphVector.at(i).first)
-            max=initialGraphVector.at(i).first;
+        if(max<initialGraphVector.at(i).second)
+            max=initialGraphVector.at(i).second;
 
     }
 
