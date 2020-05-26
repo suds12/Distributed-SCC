@@ -99,7 +99,7 @@ void read_edge(char* filename,
 //  ifstream infile;
 //  string line;
 ////  infile.open(filename);
-//   cout<<"Data"<<data.size() <<"\n";
+//  cout<<"Data"<<data.size() <<"\n";
 //  getline(infile, line, ' ');
   n = data.at(0).first;
 //  getline(infile, line);
@@ -426,11 +426,16 @@ vector <int_int > performSharedSCC(vector<int_int> data)
   delete [] out_array;
   delete [] out_degree_list;
   delete [] scc_maps;
+ 
+/*  for(int i=0;i<outputVector.size();i++)
+    {
+        cout<<outputVector.at(i).first <<" " << outputVector.at(i).second<<"\n";
+   }*/
 
   return outputVector;
 }
-
-/*int main()
+/*
+int main()
 {
     vector <int_int > outputVector= performSharedSCC();
     for(int i=0;i<outputVector.size();i++)
