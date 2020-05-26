@@ -7,20 +7,25 @@
 #include <numeric>
 #include <vector>
 #include <mpi.h>
+#include <bits/stdc++.h>
 
 #include "utils.hpp"
 #include "reader.hpp"
-
-#define chunk_height 3
-#define chunk_width 5
-#define num_partitions 3
-#define root 0
-#define global_modifier 9000
+#include "mapping.h"
+#include "Connectivity/multistep/scc_main.cpp"
 
 #ifdef HAVE_PETSC
 #include <petscsys.h>
 extern PetscLogEvent event_make_meta_seq;
 #endif
+
+
+#define chunk_height 3
+#define chunk_width 5
+#define num_partitions 3
+#define root1 0
+#define global_modifier 9000
+
 
 void perform_scc(char *argv[], Basic& basic, Graph& graph, int world_rank)   //Shared memory scc
 {
@@ -33,8 +38,116 @@ void perform_scc(char *argv[], Basic& basic, Graph& graph, int world_rank)   //S
 	//num of edges = basic.edge_count
 	//num of nodes = basic.nodes.size()
 	
+      // cout <<"world_rank in perform_SCC"<<world_rank<<"\n";
+       //cout <<"graph"<<basic.input_graph.size()<<"\n";
+       //cout <<"edges"<<basic.edge_count<<"\n";
+       //cout << "num of Nodes"<<basic.nodes.size()<<"\n";
 
-	size_t num_components = boost::strong_components (graph, &basic.local_scc[0]); //output to local_scc
+        ofstream myfile;
+	std::string name="file_" + std::to_string(world_rank) + ".txt";
+   myfile.open (name);
+   
+   
+
+
+       vector <int_int> input;
+
+int_int tmp;
+tmp.first=basic.nodes.size();
+tmp.second=basic.edge_count;
+input.push_back(tmp);
+
+
+
+
+
+/*
+      for(int i=0;i<basic.input_graph.size();i+=2)
+{
+         
+          if(i==0)
+            myfile<<basic.nodes.size()<<" "<< basic.edge_count<<"\n";
+          else
+		  myfile<<basic.input_graph[i]<<" "<<basic.input_graph[i+1]<<"\n";
+int_int tmp;
+tmp.first=basic.input_graph[i];
+tmp.second=basic.input_graph[i+1];
+input.push_back(tmp);
+
+}
+*/
+  
+
+/*
+    myfile.close();
+
+
+    std::string kimplementation="./scc";
+kimplementation=kimplementation+ " "+name;
+const char *command=kimplementation.c_str();
+system(command);
+*/
+vector <int_int> initialGraphVector;
+//vector <int_int> outputGraphVector;
+
+
+      for(int i=0;i<basic.input_graph.size();i+=2)
+{
+
+ 
+int_int tmp;
+tmp.first=basic.input_graph[i];
+tmp.second=basic.input_graph[i+1];
+initialGraphVector.push_back(tmp);
+
+}
+
+
+Struct outputValues;
+
+outputValues = mappingZeroIndexing(initialGraphVector);
+
+
+//MPI_Barrier(MPI_COMM_WORLD);
+
+/*
+for(int i=0;i<outputValues.outputGraphVector.size();i++)
+{
+
+myfile <<outputValues.outputGraphVector.at(i).first<<" "<<outputValues.outputGraphVector.at(i).second<<"\n";
+}
+*/
+myfile.close();
+
+vector <int_int> outputVector= performSharedSCC(outputValues.outputGraphVector);
+
+/*
+for(int i=0;i<outputVector.size();i++)
+    {
+        cout<<outputVector.at(i).first <<" " << outputVector.at(i).second<<"\n";
+    }
+
+*/
+ vector<int_int >outputafterReverseSCCmap;
+  for(int i=0;i<outputVector.size();i++)
+    {
+        outputafterReverseSCCmap.push_back(std::pair<int, int>(mapKey(outputValues,outputVector.at(i).first),outputVector.at(i).second));
+    }
+
+ /* 
+    for(int i=0;i<outputafterReverseSCCmap.size();i++)
+    {
+        cout<<outputafterReverseSCCmap.at(i).first<<" "<<outputafterReverseSCCmap.at(i).second<<"\n";
+    }
+*/
+
+//cout<<"done SCC Kamesh implementation";
+
+//MPI_Barrier(MPI_COMM_WORLD);	
+
+size_t num_components = boost::strong_components (graph, &basic.local_scc[0]); //output to local_scc
+
+
 
 	//Additional conversions. Don't time
 	int temp=0;
@@ -259,7 +372,7 @@ void send_meta(char *argv[], Basic& basic, int world_rank, int world_size)
 	int size_to_send = basic.index*2;
 
 	// Each process tells the root how many elements it holds
-	MPI_Gather(&size_to_send, 1, MPI_INT, counts, 1, MPI_INT, root, MPI_COMM_WORLD);
+	MPI_Gather(&size_to_send, 1, MPI_INT, counts, 1, MPI_INT, root1, MPI_COMM_WORLD);
 	// Displacements in the receive buffer for MPI_GATHERV
 	int *disps = new int[world_size];
 	// Displacement for the first chunk of data - 0
@@ -271,7 +384,7 @@ void send_meta(char *argv[], Basic& basic, int world_rank, int world_size)
 	  // disps[size-1]+counts[size-1] == total number of elements
 	  basic.global_border_combined = new int[disps[world_size-1] + counts[world_size-1]];
 	// Collect everything into the root
-	MPI_Gatherv(basic.border_combined, size_to_send, MPI_INT, basic.global_border_combined, counts, disps, MPI_INT, root, MPI_COMM_WORLD);
+	MPI_Gatherv(basic.border_combined, size_to_send, MPI_INT, basic.global_border_combined, counts, disps, MPI_INT, root1, MPI_COMM_WORLD);
 
 
 	basic.sizeof_borders=accumulate(counts , counts+world_size , basic.sizeof_borders);
@@ -290,7 +403,7 @@ void send_meta(char *argv[], Basic& basic, int world_rank, int world_size)
 	int* counts1 = new int[world_size];
 	int size_to_send1 = basic.out_index*2;
 	// Each process tells the root how many elements it holds
-	MPI_Gather(&size_to_send1, 1, MPI_INT, counts1, 1, MPI_INT, root, MPI_COMM_WORLD);
+	MPI_Gather(&size_to_send1, 1, MPI_INT, counts1, 1, MPI_INT, root1, MPI_COMM_WORLD);
 	// Displacements in the receive buffer for MPI_GATHERV
 	int *disps1 = new int[world_size];
 	// Displacement for the first chunk of data - 0
@@ -302,7 +415,7 @@ void send_meta(char *argv[], Basic& basic, int world_rank, int world_size)
 	  // disps[size-1]+counts[size-1] == total number of elements
 	  basic.global_out_combined = new int[disps1[world_size-1] + counts1[world_size-1]];
 	// Collect everything into the root
-	MPI_Gatherv(basic.out_combined, size_to_send1, MPI_INT, basic.global_out_combined, counts1, disps1, MPI_INT, root, MPI_COMM_WORLD);
+	MPI_Gatherv(basic.out_combined, size_to_send1, MPI_INT, basic.global_out_combined, counts1, disps1, MPI_INT, root1, MPI_COMM_WORLD);
 
 	basic.sizeof_outs=accumulate(counts1 , counts1+world_size , basic.sizeof_outs);
 	// ofstream fout1("dump/global_combined");
@@ -325,10 +438,10 @@ void update_arrays(int local_size, int world_rank, int world_size, int *local_ar
     int* disps;
 
     // Each process tells everyone else (or root) how many elements it holds
-    if (to_root) MPI_Gather(&local_size, 1, MPI_INT, counts, 1, MPI_INT, root, MPI_COMM_WORLD);
+    if (to_root) MPI_Gather(&local_size, 1, MPI_INT, counts, 1, MPI_INT, root1, MPI_COMM_WORLD);
     else MPI_Allgather(&local_size, 1, MPI_INT, counts, 1, MPI_INT, MPI_COMM_WORLD);
 
-    if ( (to_root == false) || (to_root && world_rank == 0)) {
+    if ( (to_root == false) || (to_root && world_rank == root1)) {
 
         // Displacements in the receive buffer for MPI_ALLGATHERV
         disps = new int[world_size];
@@ -343,7 +456,7 @@ void update_arrays(int local_size, int world_rank, int world_size, int *local_ar
     }
 
     // Collect everything, at the end, all tasks (or root) have identical global arrays
-    if (to_root) MPI_Gatherv(local_array, local_size, MPI_INT, *global_array, counts, disps, MPI_INT, root, MPI_COMM_WORLD);
+    if (to_root) MPI_Gatherv(local_array, local_size, MPI_INT, *global_array, counts, disps, MPI_INT, root1, MPI_COMM_WORLD);
     else MPI_Allgatherv(local_array, local_size, MPI_INT, *global_array, counts, disps, MPI_INT, MPI_COMM_WORLD);
 
     if (DEBUG) {
@@ -400,7 +513,7 @@ void update_meta_graph(char *argv[], Basic& basic, MetaGraph& meta_graph, int wo
 
     log_begin(event_make_meta_seq);
     // Here we recompute the SCC for the meta graph. This should also be optimzed to perform for discontinues vertices. The meta vertex ID would be in order of large numbers to make sure the global SCC ID is distinguishable from the local SCC ID. But current boost implementation fills in the gaps and calculates SCC for evey index within that range.  This wouldn't affect the overall result but would be musch slower than just calculating SCC for the vertices present. Doing that is a little more complecated with boost but I will figure that out.
-    if (world_rank == root) {
+    if (world_rank == root1) {
 	    for (int i=0; i<basic.sizeof_outs; i+=2) {
             boost::add_edge(basic.global_out_combined[i], basic.global_border_map[basic.global_out_combined[i +1]], meta_graph);
         }
@@ -418,7 +531,7 @@ void update_meta_graph(char *argv[], Basic& basic, MetaGraph& meta_graph, int wo
                     cout << i<<" = "<<basic.global_scc[i] << endl;;
         }
 
-    } // world_rank == root
+    } // world_rank == root1
 
 
 }
@@ -505,7 +618,7 @@ void scatter_global(Basic& basic, MetaGraph& meta_graph, int world_rank)
 	basic.local_result = new int [1000000];
 	MPI_Scatter(basic.global_result,  (chunk_height), MPI_INT,       //everyone recieves chunk_height ints from result 
            basic.local_result, (chunk_height), MPI_INT,      
-           root, MPI_COMM_WORLD); 
+           root1, MPI_COMM_WORLD); 
 
 	cout<<endl<<"done";
 }

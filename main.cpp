@@ -89,6 +89,7 @@ int main(int argc, char *argv[])
 
     log_begin(event_local_scc);
 
+    cout <<"Trying Perfom_SCC"<<"\n";
     perform_scc(argv,basic,graph,world_rank);
 
     log_end(event_local_scc);
