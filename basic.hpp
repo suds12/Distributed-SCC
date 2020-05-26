@@ -1,7 +1,9 @@
 
 /*This file consists of the Basic class definition. 
 Basic holds all the variables needed for SCC and the object reference is passed around functions*/
-#pragma once
+#ifndef DISTRIBUTED_SCC_BASIC_HPP
+#define DISTRIBUTED_SCC_BASIC_HPP
+
 #include <unordered_set>
 #include <set>
 #include <map> 
@@ -14,11 +16,12 @@ Basic holds all the variables needed for SCC and the object reference is passed 
 #include <boost/archive/text_iarchive.hpp>
 #include <boost/serialization/vector.hpp>
 
-#define height 3
-#define width 5
-#define np 3
+const int height=3;
+const int width=5;
 
 #define DELETE_1DARRAY(x) if (x!=nullptr) delete[] x
+
+using namespace std;
 
 class Basic
 {
@@ -31,8 +34,10 @@ public:
  //        // Simply list all the fields to be serialized/deserialized.
  //        ar & input_graph;
  //    }
+    static int np; // number of MPI tasks
 
 	int edge_count=0;
+	int my_rank;
 	unordered_set<int> nodes;
 	map<int, int> partition_of_vertex; //Hashmap of partition id for each vertex
 	map<int, int> init_scc_of_vertex; //Hashmap of initial scc id for each vertex. This is read from sccmap file.
@@ -67,14 +72,13 @@ public:
     int *out_combined=nullptr;
     int out_nnz_capacity=0;
     int out_index=0;
-
+    int **global_border_matrix; //[height * np][width]; //Stored only in the root. Contains border matrices from all partitions stacked on top of each other.
+    int **global_out_matrix; //[height * np][width]; //Similarly for out_matrix
     int *global_out_combined=nullptr; //Combined array of all out COOs at the root
     int *global_border_combined=nullptr; //Combined array of all border COOs at the root
     int sizeof_borders=0; //Total num of nodes in global_border_combined. Maintained ar root
     int sizeof_outs=0; //Total num of nodes in global_out_combined. maintained at root
 
-    int global_border_matrix[height * np][width]; //Stored only in the root. Contains border matrices from all partitions stacked on top of each other.
-    int global_out_matrix[height * np][width]; //Similarly for out_matrix
     map<int,int>global_border_map; //key=border vertex, val=local scc_id(made unique by adding with task_modifier)
     vector<int> global_scc; //Stores the scc result for meta graph.  
     int *global_result=nullptr; //array format for global_scc to send back to every. Can probably be removed as this is unnecessary conversion
@@ -90,19 +94,25 @@ public:
 
 	void alloc_2d_init(int rows, int cols);
 
-	Basic()
+	Basic(int nprocs, int rank)
 	{
+	    Basic::np = nprocs;
+	    my_rank = rank;
 		//Definitely not the optimal way of doing it. Should work on improving this
         int nrows = height;  //num of local SCC. Set it to appropriate vale
         int ncols = width;  //Max size of borders of SCC
         edge_count = 0;
-		// int** border_matrix = new int*[nrows];
-		// int** out_matrix = new int*[nrows];
-		// for(int i = 0; i < nrows; ++i)
-		// {
-		//     border_matrix[i] = new int[ncols];
-		//     out_matrix[i] = new int[ncols];
-		// }
+
+        if (my_rank == 0) {
+
+            int global_rows = height * np;
+            global_border_matrix = new int*[global_rows];
+            global_out_matrix = new int*[global_rows];
+            for (int i = 0; i < global_rows; ++i) {
+                global_border_matrix[i] = new int[ncols]();
+                global_out_matrix[i] = new int[ncols]();
+            }
+        }
 
 		// memset(arr, 0, (10*20*) * (sizeof *arr));
 		sizeof_borders = 0;
@@ -156,3 +166,4 @@ typedef
 MetaGraph;
 
 
+#endif

@@ -3,7 +3,7 @@
 #include "verify.hpp"
 #include "delete_ops1.hpp"
 #include "insert_ops1.hpp"
-#include "../global.hpp"
+//#include "../global.hpp"
 
 #include<set>
 

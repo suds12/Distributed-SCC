@@ -1,4 +1,3 @@
-#pragma once
 #include <iostream>
 #include <string>
 #include <sstream>
@@ -7,6 +6,9 @@
 #include <boost/graph/strong_components.hpp>
 #include <numeric>
 #include <vector>
+#include <mpi.h>
+
+#include "utils.hpp"
 #include "reader.hpp"
 
 #define chunk_height 3
@@ -15,6 +17,10 @@
 #define root 0
 #define global_modifier 9000
 
+#ifdef HAVE_PETSC
+#include <petscsys.h>
+extern PetscLogEvent event_make_meta_seq;
+#endif
 
 void perform_scc(char *argv[], Basic& basic, Graph& graph, int world_rank)   //Shared memory scc
 {
@@ -270,14 +276,14 @@ void send_meta(char *argv[], Basic& basic, int world_rank, int world_size)
 
 	basic.sizeof_borders=accumulate(counts , counts+world_size , basic.sizeof_borders);
 	//cout<<"&&"<<basic.sizeof_borders;
-        if (DEBUG) {
+	if (DEBUG) {
 	    ofstream fout("dump/global_combined" );
 
 	    if (world_rank == 0) {
 	 	for(int i=0;i<basic.sizeof_borders;i++)
 	 		fout<<basic.global_border_combined[i]<<" ";
 	    }
-        }
+	}
 
 	//----send out combined ------------------------
 

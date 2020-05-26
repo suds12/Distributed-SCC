@@ -2,32 +2,34 @@
 #include <cstdlib>
 #include <mpi.h>
 #include <map>
-#include <chrono> 
-#include <ctime>
+#include <chrono>
 
-#include "merge.hpp"
-#include "basic.hpp"
-//#include "main_code.cpp"
 #include "utils.hpp"
-#include "update.cpp"
+#include "basic.hpp"
+#include "update.hpp"
 #include "reader.hpp"
 
 
-using namespace std;
-
-//Global variables
-vector<set <int> > sccSets;
-int world_rank, world_size, local_size;
-
 static char help[] = "Computes distributed-memory parallel strongly connected components for dynamic graphs.\n\n";
+int Basic::np = 1;
+
+#ifdef HAVE_PETSC
+// For profiling
+PetscLogEvent event_read_input, event_local_scc, event_create_meta, event_init_coo, event_make_meta_par, event_make_meta_seq;
+PetscLogStage stage_init, stage_update;
+#endif
 
 int main(int argc, char *argv[])
 {
-     std::chrono::time_point<std::chrono::system_clock> start, end;
+    int world_rank=0, world_size=1;
+    boost::program_options::variables_map options;
+    //process_options(argc, argv, options);
+    std::chrono::time_point<std::chrono::system_clock> start, end;
     //-----------------------------------
 	// Initialize the MPI environment
 #ifdef HAVE_PETSC
     PetscInitialize(&argc,&argv,NULL,help);
+
     PetscLogStageRegister("Initialization", &stage_init); 
     PetscLogStageRegister("Update", &stage_update); 
     PetscLogEventRegister("Read input",0,&event_read_input); 
@@ -47,9 +49,10 @@ int main(int argc, char *argv[])
 
     //shared_scc(argc, argv);
     //Reader r1;
+
+    cout<<"Initializing..."<<endl;
   
-    
-    Basic basic;
+    Basic basic(world_size,world_rank);
     Graph graph;
     Graph changes;
     MetaGraph meta_graph;
@@ -58,7 +61,7 @@ int main(int argc, char *argv[])
     log_begin(event_read_input);
 
     cout<<"reading partition from rank "<<world_rank<<endl;
-    read_partitions(argv,basic,graph);
+    read_partitions(argv,basic,graph,world_rank);
 
     cout<<"reading graph from rank "<<world_rank<<endl;
     read_graph(argv,basic,graph,world_rank);
@@ -90,7 +93,7 @@ int main(int argc, char *argv[])
 
     log_end(event_local_scc);
 
-    if (DEBUG) cout<<"Initialisizing COO from rank "<<world_rank<<" for "<<basic.total_border_count<<" border vertices"<<endl;
+    if (DEBUG) cout<<"Initializing COO from rank "<<world_rank<<" for "<<basic.total_border_count<<" border vertices"<<endl;
 
     log_begin(event_init_coo);
     init_coo(basic);
