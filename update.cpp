@@ -43,7 +43,7 @@ void perform_scc(char *argv[], Basic& basic, Graph& graph, int world_rank)   //S
 
         ofstream myfile;
 	std::string name="file_" + std::to_string(world_rank) + ".txt";
-   // myfile.open (name);
+   myfile.open (name);
    
    
 
@@ -108,29 +108,38 @@ outputValues = mappingZeroIndexing(initialGraphVector);
 
 //MPI_Barrier(MPI_COMM_WORLD);
 
+/*
+for(int i=0;i<outputValues.outputGraphVector.size();i++)
+{
+
+myfile <<outputValues.outputGraphVector.at(i).first<<" "<<outputValues.outputGraphVector.at(i).second<<"\n";
+}
+*/
+myfile.close();
+
 vector <int_int> outputVector= performSharedSCC(outputValues.outputGraphVector);
 
-
+/*
 for(int i=0;i<outputVector.size();i++)
     {
         cout<<outputVector.at(i).first <<" " << outputVector.at(i).second<<"\n";
     }
 
-
+*/
  vector<int_int >outputafterReverseSCCmap;
   for(int i=0;i<outputVector.size();i++)
     {
         outputafterReverseSCCmap.push_back(std::pair<int, int>(mapKey(outputValues,outputVector.at(i).first),outputVector.at(i).second));
     }
 
-  
+ /* 
     for(int i=0;i<outputafterReverseSCCmap.size();i++)
     {
         cout<<outputafterReverseSCCmap.at(i).first<<" "<<outputafterReverseSCCmap.at(i).second<<"\n";
     }
+*/
 
-
-cout<<"done SCC Kamesh implementation";
+//cout<<"done SCC Kamesh implementation";
 
 //MPI_Barrier(MPI_COMM_WORLD);	
 
