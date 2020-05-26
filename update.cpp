@@ -36,10 +36,10 @@ void perform_scc(char *argv[], Basic& basic, Graph& graph, int world_rank)   //S
 	//num of edges = basic.edge_count
 	//num of nodes = basic.nodes.size()
 	
-       cout <<"world_rank in perform_SCC"<<world_rank<<"\n";
-       cout <<"graph"<<basic.input_graph.size()<<"\n";
-       cout <<"edges"<<basic.edge_count<<"\n";
-       cout << "num of Nodes"<<basic.nodes.size()<<"\n";
+      // cout <<"world_rank in perform_SCC"<<world_rank<<"\n";
+       //cout <<"graph"<<basic.input_graph.size()<<"\n";
+       //cout <<"edges"<<basic.edge_count<<"\n";
+       //cout << "num of Nodes"<<basic.nodes.size()<<"\n";
 
         ofstream myfile;
 	std::string name="file_" + std::to_string(world_rank) + ".txt";
