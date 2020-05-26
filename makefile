@@ -5,19 +5,17 @@ DEBUG?=1
 CPPFLAGS=-g -std=c++14 -g3 -DDEBUG=$(DEBUG)
 OBJECTS=main.o graphReader.o update.o reader.o utils.o
 
-ifeq ($(BOOST_ROOT),)
-  BOOST_ROOT=/home/users/ssriniv2/packages/boost_1_72_0
-  LDFLAGS=-L/home/users/ssriniv2/packages/boost_1_72_0/stage/lib
-else
-  LDFLAGS=-L$(BOOST_ROOT)/lib -Wl,-rpath,$(BOOST_ROOT)/lib
-endif
-
-LIBS=-lboost_serialization -lboost_program_options
+# Boost settings
+BOOST_ROOT?=/packages/boost/1_73_0
 CPPFLAGS+=-I$(BOOST_ROOT) -I$(BOOST_ROOT)/include
+LDFLAGS+=-L$(BOOST_ROOT)/lib -Wl,-rpath,$(BOOST_ROOT)/lib
+LIBS=-lboost_serialization -lboost_program_options
 
 # To enable PETSc logging, set the PETSC_DIR and PETSC_ARCH environment variables.
-# For example, on arya, you can use the command: 
-#    PETSC_DIR=/shared/soft/petsc-git PETSC_ARCH=arch-linux2-c-debug make 
+# For example, on arya, you can use the command to compile and run the small example: 
+#    make PETSC_DIR=/shared/soft/petsc-git PETSC_ARCH=arch-linux2-c-opt run 
+# For deugging use:
+#    make PETSC_DIR=/shared/soft/petsc-git PETSC_ARCH=arch-linux2-c-opt run
 ifdef PETSC_DIR
    include ${PETSC_DIR}/lib/petsc/conf/variables
    mpi_base=$(PETSC_DIR)/$(PETSC_ARCH)
@@ -25,6 +23,7 @@ ifdef PETSC_DIR
    LIBS+=-lpetsc $(PETSC_EXTERNAL_LIB_BASIC)
    RUNOPTS+=-log_view
 endif
+
 
 CC=$(mpi_base)/bin/mpic++
 run=$(mpi_base)/bin/mpirun
