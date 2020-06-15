@@ -19,14 +19,6 @@
 extern PetscLogEvent event_make_meta_seq;
 #endif
 
-
-#define chunk_height 3
-#define chunk_width 5
-#define num_partitions 3
-#define root1 0
-#define global_modifier 9000
-
-
 void perform_scc(char *argv[], Basic& basic, Graph& graph, int world_rank)   //Shared memory scc
 {
 	
@@ -372,7 +364,7 @@ void send_meta(char *argv[], Basic& basic, int world_rank, int world_size)
 	int size_to_send = basic.index*2;
 
 	// Each process tells the root how many elements it holds
-	MPI_Gather(&size_to_send, 1, MPI_INT, counts, 1, MPI_INT, root1, MPI_COMM_WORLD);
+	MPI_Gather(&size_to_send, 1, MPI_INT, counts, 1, MPI_INT, basic.root, MPI_COMM_WORLD);
 	// Displacements in the receive buffer for MPI_GATHERV
 	int *disps = new int[world_size];
 	// Displacement for the first chunk of data - 0
@@ -384,7 +376,7 @@ void send_meta(char *argv[], Basic& basic, int world_rank, int world_size)
 	  // disps[size-1]+counts[size-1] == total number of elements
 	  basic.global_border_combined = new int[disps[world_size-1] + counts[world_size-1]];
 	// Collect everything into the root
-	MPI_Gatherv(basic.border_combined, size_to_send, MPI_INT, basic.global_border_combined, counts, disps, MPI_INT, root1, MPI_COMM_WORLD);
+	MPI_Gatherv(basic.border_combined, size_to_send, MPI_INT, basic.global_border_combined, counts, disps, MPI_INT, basic.root, MPI_COMM_WORLD);
 
 
 	basic.sizeof_borders=accumulate(counts , counts+world_size , basic.sizeof_borders);
@@ -403,7 +395,7 @@ void send_meta(char *argv[], Basic& basic, int world_rank, int world_size)
 	int* counts1 = new int[world_size];
 	int size_to_send1 = basic.out_index*2;
 	// Each process tells the root how many elements it holds
-	MPI_Gather(&size_to_send1, 1, MPI_INT, counts1, 1, MPI_INT, root1, MPI_COMM_WORLD);
+	MPI_Gather(&size_to_send1, 1, MPI_INT, counts1, 1, MPI_INT, basic.root, MPI_COMM_WORLD);
 	// Displacements in the receive buffer for MPI_GATHERV
 	int *disps1 = new int[world_size];
 	// Displacement for the first chunk of data - 0
@@ -415,7 +407,7 @@ void send_meta(char *argv[], Basic& basic, int world_rank, int world_size)
 	  // disps[size-1]+counts[size-1] == total number of elements
 	  basic.global_out_combined = new int[disps1[world_size-1] + counts1[world_size-1]];
 	// Collect everything into the root
-	MPI_Gatherv(basic.out_combined, size_to_send1, MPI_INT, basic.global_out_combined, counts1, disps1, MPI_INT, root1, MPI_COMM_WORLD);
+	MPI_Gatherv(basic.out_combined, size_to_send1, MPI_INT, basic.global_out_combined, counts1, disps1, MPI_INT, basic.root, MPI_COMM_WORLD);
 
 	basic.sizeof_outs=accumulate(counts1 , counts1+world_size , basic.sizeof_outs);
 	// ofstream fout1("dump/global_combined");
@@ -428,7 +420,7 @@ void send_meta(char *argv[], Basic& basic, int world_rank, int world_size)
 }
 
 void update_arrays(int local_size, int world_rank, int world_size, int *local_array, int **global_array, int *global_size, 
-                   bool to_root=false,  string msg="") {
+                   bool to_root=false, const int root=-1, const string msg="") {
     /* 
         Given local arrays of varying sizes, this function combines them into a single global array containing
         all the elements and replicates that array on all tasks if to_root is false.
@@ -438,10 +430,10 @@ void update_arrays(int local_size, int world_rank, int world_size, int *local_ar
     int* disps;
 
     // Each process tells everyone else (or root) how many elements it holds
-    if (to_root) MPI_Gather(&local_size, 1, MPI_INT, counts, 1, MPI_INT, root1, MPI_COMM_WORLD);
+    if (to_root) MPI_Gather(&local_size, 1, MPI_INT, counts, 1, MPI_INT, root, MPI_COMM_WORLD);
     else MPI_Allgather(&local_size, 1, MPI_INT, counts, 1, MPI_INT, MPI_COMM_WORLD);
 
-    if ( (to_root == false) || (to_root && world_rank == root1)) {
+    if ( (to_root == false) || (to_root && world_rank == root)) {
 
         // Displacements in the receive buffer for MPI_ALLGATHERV
         disps = new int[world_size];
@@ -456,7 +448,7 @@ void update_arrays(int local_size, int world_rank, int world_size, int *local_ar
     }
 
     // Collect everything, at the end, all tasks (or root) have identical global arrays
-    if (to_root) MPI_Gatherv(local_array, local_size, MPI_INT, *global_array, counts, disps, MPI_INT, root1, MPI_COMM_WORLD);
+    if (to_root) MPI_Gatherv(local_array, local_size, MPI_INT, *global_array, counts, disps, MPI_INT, root, MPI_COMM_WORLD);
     else MPI_Allgatherv(local_array, local_size, MPI_INT, *global_array, counts, disps, MPI_INT, MPI_COMM_WORLD);
 
     if (DEBUG) {
@@ -488,7 +480,7 @@ void update_meta_graph(char *argv[], Basic& basic, MetaGraph& meta_graph, int wo
     */
 
     // ---update border combined------
-    update_arrays(basic.index*2, world_rank, world_size, basic.border_combined, &basic.global_border_combined, &basic.sizeof_borders, false, "borders"); 
+    update_arrays(basic.index*2, world_rank, world_size, basic.border_combined, &basic.global_border_combined, &basic.sizeof_borders, false, -1, "borders");
 
     // --- update out combined --------
     // update_arrays(basic.out_index*2, world_rank, world_size, basic.out_combined, &basic.global_out_combined, &basic.sizeof_outs, "outs"); 
@@ -509,11 +501,11 @@ void update_meta_graph(char *argv[], Basic& basic, MetaGraph& meta_graph, int wo
      }
 
     // Send the new metagraph edge vertices to root
-    update_arrays(number_new_vertices, world_rank, world_size, basic.out_combined, &basic.global_out_combined, &basic.sizeof_outs, true, "new meta vertices");
+    update_arrays(number_new_vertices, world_rank, world_size, basic.out_combined, &basic.global_out_combined, &basic.sizeof_outs, true, basic.root, "new meta vertices");
 
     log_begin(event_make_meta_seq);
     // Here we recompute the SCC for the meta graph. This should also be optimzed to perform for discontinues vertices. The meta vertex ID would be in order of large numbers to make sure the global SCC ID is distinguishable from the local SCC ID. But current boost implementation fills in the gaps and calculates SCC for evey index within that range.  This wouldn't affect the overall result but would be musch slower than just calculating SCC for the vertices present. Doing that is a little more complecated with boost but I will figure that out.
-    if (world_rank == root1) {
+    if (world_rank == basic.root) {
 	    for (int i=0; i<basic.sizeof_outs; i+=2) {
             boost::add_edge(basic.global_out_combined[i], basic.global_border_map[basic.global_out_combined[i +1]], meta_graph);
         }
@@ -531,7 +523,7 @@ void update_meta_graph(char *argv[], Basic& basic, MetaGraph& meta_graph, int wo
                     cout << i<<" = "<<basic.global_scc[i] << endl;;
         }
 
-    } // world_rank == root1
+    } // world_rank == basic.root
 
 
 }
@@ -613,93 +605,3 @@ void create_result(Basic& basic, MetaGraph& meta_graph, int world_rank)
 
 }
 
-void scatter_global(Basic& basic, MetaGraph& meta_graph, int world_rank)
-{
-	basic.local_result = new int [1000000];
-	MPI_Scatter(basic.global_result,  (chunk_height), MPI_INT,       //everyone recieves chunk_height ints from result 
-           basic.local_result, (chunk_height), MPI_INT,      
-           root1, MPI_COMM_WORLD); 
-
-	cout<<endl<<"done";
-}
-
-// void disjoint_union(Basic& basic, int world_rank)
-// {
-// 	if (world_rank==1)
-// 	{
-// 		int root,temp=0,count=0;
-// 		ofstream l_scc_dump("dump/l_scc_" + std::to_string(world_rank) + ".txt");
-
-		
-// 		basic.alloc_2d_init(basic.nrows,basic.ncols);
-// 		//Find intersection of new border with each SCC
-// 		for(int it=0;it<basic.l_scc.size();it++)
-// 		{	
-// 			root= *basic.l_scc[it].begin();   //Some random element chosen from the set. Used as parent of the set when merging and sent along with inrtersections
-// 			//basic.merge_detail[it].push_back(root); //First element of the row vector is root followed by intersections.
-// 			temp=0;	
-// 			for (auto element = basic.border_vertices.begin(); element != basic.border_vertices.end();element++) 
-// 			{
-// 			  if (basic.l_scc[it].find(*element) != basic.l_scc[it].end()) 
-// 			  {
-// 			    //basic.intersection_set.push_back(*element);
-// 			    basic.detail[it][temp]= *element;
-			 
-// 			    count++;//For bookeeping
-// 			    temp++;
-// 			  }
-// 			}
-// 		}
-// 	}
-
-// 	int buffer2[2];
-// 	//MPI_Request request;
-	
-// 	//Remove this from timing as I would implicitly be storing 2d vectors as a flattened array. Those are much better for MPI communication
-	
-// 	// for(int i=0;i<basic.nrows;i++)
-// 	// {
-// 	// 	for(int j=0;j<basic.ncols;j++)
-// 	// 		cout<<basic.detail[i][j]<<" ";
-// 	// }
-
-// 	if(world_rank==1)
-// 	{
-// 		for(int i=0;i<basic.nrows;i++)
-// 		{
-// 			cout<<endl;
-// 			for(int j=0;j<basic.ncols;j++)
-// 				cout<<basic.detail[i][j]<<" ";
-// 		}
-// 	}
-// 		//MPI_Send(basic.detail, count, MPI_INT, 0, 123, MPI_COMM_WORLD);
-// 		//MPI_Wait(&request, &status);
-	
-// }
-
-
-
-//template func to test if two sets are disjoint
-template<class Set1, class Set2> 
-bool is_disjoint(const Set1 &set1, const Set2 &set2)
-{
-    if(set1.empty() || set2.empty()) return true;
-
-    typename Set1::const_iterator 
-        it1 = set1.begin(), 
-        it1End = set1.end();
-    typename Set2::const_iterator 
-        it2 = set2.begin(), 
-        it2End = set2.end();
-
-    if(*it1 > *set2.rbegin() || *it2 > *set1.rbegin()) return true;
-
-    while(it1 != it1End && it2 != it2End)
-    {
-        if(*it1 == *it2) return false;
-        if(*it1 < *it2) { it1++; }
-        else { it2++; }
-    }
-
-    return true;
-}

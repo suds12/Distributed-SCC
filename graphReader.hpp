@@ -8,12 +8,14 @@
 #include <vector>
 #include <string>
 
+#include "basic.hpp"
+
 using namespace std;
 
 class GraphReader {
 public:
     GraphReader(int buf) : buffer(buf){}
-    void read(string filename, vector< vector<int> >& edges);
+    void read(string filename, Basic basic&, vector< vector<int> >& edges);
     //void partition(Partitioner& p);
 private:
     void dump_binary(string filename);

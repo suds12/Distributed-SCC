@@ -31,8 +31,8 @@ void process_options(int argc, char* argv[], po::variables_map& options) {
 
     if (options.count("help")) PRINT_HELP_AND_EXIT;
 
-    CHECK_REQUIRED("graph");
-    CHECK_REQUIRED("changes");
-    CHECK_REQUIRED("scc");
+    //CHECK_REQUIRED("graph");
+    //CHECK_REQUIRED("changes");
+    //CHECK_REQUIRED("scc");
 
 }

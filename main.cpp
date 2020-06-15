@@ -22,8 +22,10 @@ PetscLogStage stage_init, stage_update;
 int main(int argc, char *argv[])
 {
     int world_rank=0, world_size=1;
+    const int root=0;
     boost::program_options::variables_map options;
     //process_options(argc, argv, options);
+
     std::chrono::time_point<std::chrono::system_clock> start, end;
     //-----------------------------------
 	// Initialize the MPI environment
@@ -52,7 +54,7 @@ int main(int argc, char *argv[])
 
     cout<<"Initializing..."<<endl;
   
-    Basic basic(world_size,world_rank);
+    Basic basic(world_size,world_rank,root);
     Graph graph;
     Graph changes;
     MetaGraph meta_graph;
@@ -126,8 +128,6 @@ int main(int argc, char *argv[])
     }
     if (DEBUG) cout<<"scatter results from rank "<<world_rank<<endl;
 
-
-    scatter_global(basic,meta_graph,world_rank);
 
     log_end(event_make_meta_seq);
     log_stage_end();

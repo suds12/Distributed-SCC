@@ -38,6 +38,7 @@ public:
 
 	int edge_count=0;
 	int my_rank;
+	int root;
 	unordered_set<int> nodes;
 	map<int, int> partition_of_vertex; //Hashmap of partition id for each vertex
 	map<int, int> init_scc_of_vertex; //Hashmap of initial scc id for each vertex. This is read from sccmap file.
@@ -92,12 +93,14 @@ public:
 	int nrows; //Number of SCCs
 	int ncols;  //Size of biggest SCC(only borders)
 
+
 	void alloc_2d_init(int rows, int cols);
 
-	Basic(int nprocs, int rank)
+	Basic(int nprocs, int rank, int root)
 	{
 	    Basic::np = nprocs;
 	    my_rank = rank;
+	    this->root = root;
 		//Definitely not the optimal way of doing it. Should work on improving this
         int nrows = height;  //num of local SCC. Set it to appropriate vale
         int ncols = width;  //Max size of borders of SCC

@@ -7,7 +7,7 @@ void init_coo(Basic& basic);
 void make_meta(char *argv[], Basic& basic, Graph& graph, int world_rank);
 void prepare_to_send(Basic& basic, int world_rank);
 void send_meta(char *argv[], Basic& basic, int world_rank, int world_size);
-void update_arrays(int local_size, int world_rank, int world_size, int *local_array, int **global_array, int *global_size,bool to_root=false,  string msg="");
+void update_arrays(int local_size, int world_rank, int world_size, int *local_array, int **global_array, int *global_size,bool to_root=false, const int root=-1, const string msg="");
 void update_meta_graph(char *argv[], Basic& basic, MetaGraph& meta_graph, int world_rank, int world_size);
 void make_meta_graph(char *argv[], Basic& basic, MetaGraph& meta_graph, int world_rank);
 void recompute_scc(Basic& basic, MetaGraph& meta_graph, int world_rank);
