@@ -32,6 +32,8 @@
 #include <sstream>
 #include "io/parallel_graph_io.h"
 
+#include "partitioner.h"
+
 using namespace std;
 
 const long fileTypeVersionNumber = 2;

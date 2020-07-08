@@ -10,7 +10,7 @@
 #include "graphReader.hpp"
 
 
-void GraphReader::read(string filename, unordered_set<int>& vertices, vector<vector<int>>& edges) {
+void GraphReader::read(string filename) {
 
     std::ifstream file;
     int capacity = this->buffer;
@@ -37,8 +37,7 @@ void GraphReader::read(string filename, unordered_set<int>& vertices, vector<vec
             // the edge details (end vertices and optionally a flag to indicate add/delete)
             // into the edges vector (TODO that last one)
             edges[edge_count++] = lineData;
-            basic.
-            if (count >= capacity) {
+            if (edge_count >= capacity) {
                 capacity += this->buffer;
                 edges.reserve(capacity);
             }

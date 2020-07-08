@@ -3,13 +3,16 @@ mpi_base?=/usr/local/packages/mpich/3.2/gcc-5
 shared_scc?=/home/users/ssriniv2/SCC/SharedSCC
 DEBUG?=1
 CPPFLAGS=-g -std=c++14 -g3 -DDEBUG=$(DEBUG)
-OBJECTS=main.o graphReader.o update.o reader.o utils.o
+OBJECTS=main.o graphReader.o partitioner.o update.o reader.o utils.o
 
 # Boost settings
 BOOST_ROOT?=/packages/boost/1_73_0
 CPPFLAGS+=-I$(BOOST_ROOT) -I$(BOOST_ROOT)/include
 LDFLAGS+=-L$(BOOST_ROOT)/lib -Wl,-rpath,$(BOOST_ROOT)/lib
 LIBS=-lboost_serialization -lboost_program_options
+
+# ParHIP settings
+CPPFLAGS += -IKaHIP_v2.12/
 
 # To enable PETSc logging, set the PETSC_DIR and PETSC_ARCH environment variables.
 # For example, on arya, you can use the command to compile and run the small example: 
