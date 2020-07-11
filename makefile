@@ -12,17 +12,18 @@ LDFLAGS+=-L$(BOOST_ROOT)/lib -Wl,-rpath,$(BOOST_ROOT)/lib
 LIBS=-lboost_serialization -lboost_program_options
 
 # KaHIP/ParHIP -- must be built with CMake, see README.md
-PARHIP_CXX=mpicxx # this has to be openmpi, the same one as used to build KaHIP
-CPPFLAGS+=-I./KaHIP_v2.12/parallel/parallel_src/lib \
+KAHIP_CXX=mpicxx # this has to be openmpi, the same one as used to build KaHIP
+KAHIP_CXXFLAGS=-I./KaHIP_v2.12/parallel/parallel_src/lib \
     -I./KaHIP_v2.12/parallel/modified_kahip/lib \
     -I./KaHIP_v2.12/parallel/modified_kahip/lib/tools \
     -I./KaHIP_v2.12/parallel/modified_kahip/deploy 
-KAHIP_LIB=./KaHIP_v2.12/parallel/modified_kahip/deploy/libkahip.a
-PARHIP_IO_OBJ=./KaHIP_v2.12/parallel/parallel_src/optimized_nooutput/lib/io/parallel_graph_io.o \
-    ./KaHIP_v2.12/parallel/parallel_src/lib/data_structure/parallel_graph_access.o \
-    ./KaHIP_v2.12/parallel/parallel_src/lib/data_structure/balance_management.o \
-    ./KaHIP_v2.12/parallel/parallel_src/lib/data_structure/balance_management_coarsening.o \
-    ./KaHIP_v2.12/parallel/parallel_src/lib/data_structure/balance_management_refinement.o
+KAHIP_LIB=./KaHIP_v2.12/build/parallel/modified_kahip/liblibmodified_kahip_interface.a
+KAHIP_BUILD=./KaHIP_v2.12/build/parallel/parallel_src/CMakeFiles/libparallel.dir/lib
+KAHIP_IO_OBJ=$(KAHIP_BUILD)/io/parallel_graph_io.cpp.o \
+    $(KAHIP_BUILD)/data_structure/parallel_graph_access.cpp.o \
+    $(KAHIP_BUILD)/data_structure/balance_management.cpp.o \
+    $(KAHIP_BUILD)/data_structure/balance_management_coarsening.cpp.o \
+    $(KAHIP_BUILD)/data_structure/balance_management_refinement.cpp.o
 
 # To enable PETSc logging, set the PETSC_DIR and PETSC_ARCH environment variables.
 # For example, on arya, you can use the command to compile and run the small example: 
@@ -50,8 +51,8 @@ main: $(OBJECTS) $(WILDCARD *.hpp)
 	$(CC) $(LDFLAGS) -o $@  $(OBJECTS) $(LDFLAGS) $(LIBS)
 
 # Convert an edgelist graph to a binary format for use with partitioner
-converter: converter.o $(PARHIP_IO_OBJ) $(KAHIP_LIB)
-	$(PARHIP_CXX) $(LDFLAGS) -o converter.exe  $^
+converter: converter.cpp $(KAHIP_IO_OBJ) $(KAHIP_LIB)
+	$(KAHIP_CXX) $(KAHIP_CXXFLAGS) $(LDFLAGS) -o converter.exe  $^
 
 run: main
 	$(run) $(MPIRUNOPTS) -np 3 ./main input/distributed/g2/input_test input/distributed/g2/sccmap_test input/distributed/g2/change_test 2 1 input/distributed/g2/partition 3 $(RUNOPTS)

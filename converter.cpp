@@ -54,7 +54,7 @@ int main(int argn, char **argv)
     if(argn != 3) {
         if( rank == ROOT ) {
             std::cout <<  "usage: " ;
-            std::cout <<  "graph2binary edgelistfile outputfilename"  << std::endl;
+            std::cout <<  "converter.exe edgelistfile outputfilename"  << std::endl;
         }
         MPI_Finalize();
         return 0;
