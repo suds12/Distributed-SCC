@@ -1,12 +1,16 @@
-// This program converts an ASCII edgelist representation (no weights) to a
-// binary KAHIP file representation. It's based on the edge_list_to_metis_graph.cpp and
-// graph2binary.cpp examples.
-//
-// Building, assuming the sources are in /Users/norris/soft/KaHIP:
-// KAHIP=/Users/norris/soft/KaHIP/parallel/modified_kahip/lib
-// KAHIP_LIBDIR=/Users/norris/soft/KaHIP/deploy
-// mpicxx -g -O2 -I/Users/norris/soft/KaHIP/parallel/parallel_src/lib -I$KAHIP/tools -I/opt/local/include -o converter converter.cpp -L$KAHIP_LIBDIR -lparhip
-/******************************************************************************
+/*
+ This program converts an ASCII edgelist representation (no weights) to a
+ binary KAHIP file representation. It's based on the edge_list_to_metis_graph.cpp and
+ graph2binary.cpp examples.
+
+ To build ParHIP:
+ cd KaHIP_v2.12
+ Follow the instructions in the KaHIP_v2.12/README.
+
+ Building using the included copy of KaHIP/ParHIP:
+  make converter
+*/
+ /******************************************************************************
  * edge_list_to_metis_graph.cpp
  *
  * Source of KaHIP -- Karlsruhe High Quality Graph Partitioning
@@ -30,9 +34,9 @@
 #include <stdio.h>
 #include <iostream>
 #include <sstream>
-#include "io/parallel_graph_io.h"
+#include <unordered_map>
 
-#include "partitioner.h"
+#include "io/parallel_graph_io.h"
 
 using namespace std;
 

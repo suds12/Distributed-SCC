@@ -5,6 +5,9 @@
 #ifndef DISTRIBUTED_SCC_PARTITIONER_HPP
 #define DISTRIBUTED_SCC_PARTITIONER_HPP
 
+#include <unordered_set>
+using namespace std;
+
 class Partitioner {
 public:
 

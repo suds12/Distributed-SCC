@@ -3,7 +3,7 @@ mpi_base?=/usr/local/packages/mpich/3.2/gcc-5
 shared_scc?=/home/users/ssriniv2/SCC/SharedSCC
 DEBUG?=1
 CPPFLAGS=-g -std=c++14 -g3 -DDEBUG=$(DEBUG)
-OBJECTS=main.o graphReader.o partitioner.o update.o reader.o utils.o
+OBJECTS=main.o graphReader.o update.o reader.o utils.o
 
 # Boost settings
 BOOST_ROOT?=/packages/boost/1_73_0
@@ -11,8 +11,18 @@ CPPFLAGS+=-I$(BOOST_ROOT) -I$(BOOST_ROOT)/include
 LDFLAGS+=-L$(BOOST_ROOT)/lib -Wl,-rpath,$(BOOST_ROOT)/lib
 LIBS=-lboost_serialization -lboost_program_options
 
-# ParHIP settings
-CPPFLAGS += -IKaHIP_v2.12/
+# KaHIP/ParHIP
+PARHIP_CXX=mpicxx # this has to be openmpi, the same one as used to build KaHIP
+CPPFLAGS+=-I./KaHIP_v2.12/parallel/parallel_src/lib \
+    -I./KaHIP_v2.12/parallel/modified_kahip/lib \
+    -I./KaHIP_v2.12/parallel/modified_kahip/lib/tools \
+    -I./KaHIP_v2.12/parallel/modified_kahip/deploy 
+KAHIP_LIB=./KaHIP_v2.12/parallel/modified_kahip/deploy/libkahip.a
+PARHIP_IO_OBJ=./KaHIP_v2.12/parallel/parallel_src/optimized_nooutput/lib/io/parallel_graph_io.o \
+    ./KaHIP_v2.12/parallel/parallel_src/lib/data_structure/parallel_graph_access.o \
+    ./KaHIP_v2.12/parallel/parallel_src/lib/data_structure/balance_management.o \
+    ./KaHIP_v2.12/parallel/parallel_src/lib/data_structure/balance_management_coarsening.o \
+    ./KaHIP_v2.12/parallel/parallel_src/lib/data_structure/balance_management_refinement.o
 
 # To enable PETSc logging, set the PETSC_DIR and PETSC_ARCH environment variables.
 # For example, on arya, you can use the command to compile and run the small example: 
@@ -38,6 +48,10 @@ all: main
 
 main: $(OBJECTS) $(WILDCARD *.hpp)
 	$(CC) $(LDFLAGS) -o $@  $(OBJECTS) $(LDFLAGS) $(LIBS)
+
+# Convert an edgelist graph to a binary format for use with partitioner
+converter: converter.o $(PARHIP_IO_OBJ) $(KAHIP_LIB)
+	$(PARHIP_CXX) $(LDFLAGS) -o converter.exe  $^
 
 run: main
 	$(run) $(MPIRUNOPTS) -np 3 ./main input/distributed/g2/input_test input/distributed/g2/sccmap_test input/distributed/g2/change_test 2 1 input/distributed/g2/partition 3 $(RUNOPTS)
