@@ -11,7 +11,7 @@ CPPFLAGS+=-I$(BOOST_ROOT) -I$(BOOST_ROOT)/include
 LDFLAGS+=-L$(BOOST_ROOT)/lib -Wl,-rpath,$(BOOST_ROOT)/lib
 LIBS=-lboost_serialization -lboost_program_options
 
-# KaHIP/ParHIP
+# KaHIP/ParHIP -- must be built with CMake, see README.md
 PARHIP_CXX=mpicxx # this has to be openmpi, the same one as used to build KaHIP
 CPPFLAGS+=-I./KaHIP_v2.12/parallel/parallel_src/lib \
     -I./KaHIP_v2.12/parallel/modified_kahip/lib \
