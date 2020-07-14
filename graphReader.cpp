@@ -77,7 +77,7 @@ void GraphReader::read(string filename) {
     adj_vert.shrink_to_fit();
     this->nvertices = maxvertex + 1; // vertex indices start at 0
     //edges.shrink_to_fit();
-#if DEBUG == 1
+#if DEBUG >= 2
     cout << "Adjacency indices: " << endl; 
     for (auto it = adj_ind.begin(); it != adj_ind.end(); it++) 
         cout << *it << " ";
