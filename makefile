@@ -1,7 +1,7 @@
 # These are Sudharshan-only settings, which can be changed in the environment for correct locations elsewhere
 mpi_base?=/usr/local/packages/mpich/3.2/gcc-5
 shared_scc?=/home/users/ssriniv2/SCC/SharedSCC
-DEBUG?=1
+DEBUG?=0
 CPPFLAGS=-g -std=c++14 -g3 -DDEBUG=$(DEBUG)
 OBJECTS=main.o graphReader.o update.o reader.o utils.o
 
@@ -10,6 +10,12 @@ BOOST_ROOT?=/packages/boost/1_73_0
 CPPFLAGS+=-I$(BOOST_ROOT) -I$(BOOST_ROOT)/include
 LDFLAGS+=-L$(BOOST_ROOT)/lib -Wl,-rpath,$(BOOST_ROOT)/lib
 LIBS=-lboost_serialization -lboost_program_options
+
+# Metis settings
+METIS_INCLUDE=/usr/include
+METIS_LIB=/usr/lib/x86_64-linux-gnu/libmetis.so.5.1.0
+CPPFLAGS+=-I$(METIS_INCLUDE)
+LIBS+=$(METIS_LIB)
 
 # KaHIP/ParHIP -- must be built with CMake, see README.md
 KAHIP_CXX=mpicxx # this has to be openmpi, the same one as used to build KaHIP
@@ -54,6 +60,9 @@ main: $(OBJECTS) $(WILDCARD *.hpp)
 converter: converter.cpp $(KAHIP_IO_OBJ) $(KAHIP_LIB)
 	$(KAHIP_CXX) $(KAHIP_CXXFLAGS) $(LDFLAGS) -o converter.exe  $^
 
+partition: partition.cpp graphReader.cpp
+	$(CC) $(CPPFLAGS) $(LDFLAGS) -o $@ $^ $(METIS_LIB)
+
 run: main
 	$(run) $(MPIRUNOPTS) -np 3 ./main input/distributed/g2/input_test input/distributed/g2/sccmap_test input/distributed/g2/change_test 2 1 input/distributed/g2/partition 3 $(RUNOPTS)
 
@@ -70,7 +79,7 @@ facebook: main
 	$(run) $(MPIRUNOPTS) -np 3 ./main input/facebook/facebook_combined.txt input/facebook/scc_map input/facebook/changes 2 1 input/facebook/partition_facebook.txt 3 $(RUNOPTS)
 
 clean:
-	$(RM) *.o main
+	$(RM) *.o main partition
 
 clean_dump:
 	rm dump/*

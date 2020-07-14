@@ -1,5 +1,6 @@
 //
 // Created by Boyana Norris 5/25/2020.
+//  KaHIP/ParHIP partitining -- DOES NOT WORK, use partition.cpp based on METIS
 //
 
 #include <iostream>
