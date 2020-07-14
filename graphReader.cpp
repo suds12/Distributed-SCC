@@ -36,7 +36,7 @@ void GraphReader::read(string filename) {
             // line contains the current line
             std::vector<int> lineData;
             std::stringstream lineStream(line);
-            if (line[0] == '%') continue;
+            if (line[0] == '%' || line[0] == '#') continue;  // skip comments
 
             int value; int i=0;
             // Read an integer at a time from the line
