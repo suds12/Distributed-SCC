@@ -27,3 +27,4 @@ For example
 ```
 ./partition input/inputgraph 2
 ```
+This will create two partitioning files, each containing lines that are pairs of partition ID and vertex number.
