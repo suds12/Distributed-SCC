@@ -10,6 +10,9 @@
 // Install metis from:
 // http://glaros.dtc.umn.edu/gkhome/fetch/sw/metis/metis-5.1.0.tar.gz
 // or Ubuntu: sudo apt install libmetis-dev
+// 
+// Adjust makefile, then build with "make partition"
+// To run:  ./partition
 
 int main(int argc, char *argv[]){
 
@@ -28,8 +31,7 @@ int main(int argc, char *argv[]){
     GraphReader reader(1000);   // buffer size is 1000
     cout << "Reading graph...\n";
     reader.read(filename);      
-
- 
+    reader.writeBinaryEdgelist(filename+".edgelist.bin");
 
     idx_t nVert = reader.get_num_vert();
     auto xadj = reader.get_adj_ind();
@@ -51,8 +53,8 @@ int main(int argc, char *argv[]){
     // Create mapping: a vector corresponding to the partitions, where each entry is the list of vertices 
     // in that partition
     vector<vector<idx_t>> partition(nParts);
-    for (unsigned part_i = 0; part_i < part.size(); part_i++){
-        partition[part[part_i]].push_back(part_i);
+    for (unsigned vertex = 0; vertex < part.size(); vertex++){
+        partition[part[vertex]].push_back(vertex);
     }
 #if DEBUG>=1
     for (unsigned i = 0; i < nParts; i++) {
@@ -64,18 +66,42 @@ int main(int argc, char *argv[]){
 #endif
 
     // Write out partitioning files
+
     
     for(unsigned i = 0; i < nParts; i++) {
-        stringstream partition_filename;
-        partition_filename << filename <<  "_" << i;
-        ofstream partfile;
-        partfile.open(partition_filename.str());
-        // For binary, change to: 
-        //partfile.lopen(partition_filename, ios::out | ios::binary);
-        for (unsigned j = 0; j < partition[i].size(); j++)
-            partfile << i << " " << partition[i][j] << endl;
+        stringstream partition_filename_stream;
+        partition_filename_stream << filename <<  "_" << i;
+        string pfilename = partition_filename_stream.str();
+        ofstream partfile(pfilename, ios::out | ios::binary);
+        idx_t *vertices = partition[i].data();
+        partfile.write(reinterpret_cast<char *>(vertices), partition[i].size() * sizeof(idx_t));
+        // For ASCII output, change to: 
+        //ofstream partfile(partition_filename.str());
+        //for (unsigned j = 0; j < partition[i].size(); j++) partfile << partition[i][j] << endl;
         partfile.close();
     }
-         
+
+#if DEBUG>=1
+    // Read the partititioning data and create the same partitioning data structure
+    vector<vector<idx_t>> inp_partition(nParts);
+    cout << "After reading binary:\n"; 
+    for(unsigned i = 0; i < nParts; i++) {
+        stringstream partition_filename_stream;
+        partition_filename_stream << filename <<  "_" << i;
+        string pfilename = partition_filename_stream.str();
+       
+        ifstream fin(pfilename, ios::in | ios::binary);
+        fin.seekg(0, ifstream::end);
+        int size = fin.tellg() / sizeof (idx_t);
+        idx_t tmp[size];
+        fin.seekg(0, ifstream::beg);
+        fin.read(reinterpret_cast<char *>(&tmp), sizeof(tmp));
+        cout << i <<  ": ";
+        for (int j=0; j < size; j++) cout << tmp[j] << " ";
+        cout << endl;
+        std::move(tmp,tmp+size,back_inserter(inp_partition[i]));
+        fin.close();
+    }
+#endif
     return 0;
 }

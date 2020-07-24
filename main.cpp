@@ -62,10 +62,11 @@ int main(int argc, char *argv[])
     log_stage_begin(stage_init);
     log_begin(event_read_input);
 
-    cout<<"reading partition from rank "<<world_rank<<endl;
+    cout<<"reading my partition from rank "<<world_rank<<endl;
+    read_my_partition(argv[0], argv[1], world_rank);
     read_partitions(argv,basic,graph,world_rank);
 
-    cout<<"reading graph from rank "<<world_rank<<endl;
+    cout<<"reading my portion of the graph from rank "<<world_rank<<endl;
     read_graph(argv,basic,graph,world_rank);
 
     cout<<"reading changes from rank "<<world_rank<<endl;

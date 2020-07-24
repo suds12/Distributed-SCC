@@ -4,7 +4,7 @@
 #include <unordered_set>
 #include<sys/mman.h>
 #include<sys/stat.h>
-#include<fcntl.h>
+#include <fcntl.h>
 #include <boost/archive/text_oarchive.hpp>
 #include <boost/archive/text_iarchive.hpp>
 #include <boost/serialization/vector.hpp>
@@ -13,6 +13,30 @@
 
 using namespace std;
 
+void read_my_partition(const string filename, const int nParts, const int my_rank, set<idx_t>& my_vertices) {
+
+   // Read the partititioning data into the my_vertices vector -- partition number corresponds to task ID (my_rank)
+    for(unsigned i = 0; i < nParts; i++) {
+        if (my_rank == i) { 
+            // Each MPI rank reads its partition, which is stored in the partition data structure, 
+            // which has a list of vertices for each partition number. For example, on rank 2,
+            stringstream partition_filename_stream;
+            partition_filename_stream << filename <<  "_" << i;
+            string pfilename = partition_filename_stream.str();
+    
+            ifstream fin(pfilename, ios::in | ios::binary);
+            fin.seekg(0, ifstream::end);
+            int size = fin.tellg() / sizeof (idx_t);
+            idx_t tmp[size];
+            fin.seekg(0, ifstream::beg);
+            fin.read((char*)&tmp, sizeof(tmp));
+            std::move(tmp, tmp + size, std::back_inserter(my_vertices));
+            fin.close();
+        }
+    }
+} 
+
+ 
 //This function is for memory mapping. Each reading function would call this with their respective files as arg1
 const char* get_file_map_info(const char* fname, size_t& num_bytes, int world_rank){
     int fd = open(fname, O_RDONLY); // 19

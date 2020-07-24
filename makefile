@@ -2,11 +2,11 @@
 mpi_base?=/usr/local/packages/mpich/3.2/gcc-5
 shared_scc?=/home/users/ssriniv2/SCC/SharedSCC
 DEBUG?=0
-CPPFLAGS=-g -std=c++14 -g3 -DDEBUG=$(DEBUG)
+CPPFLAGS=-g -std=c++14 -g3 -DDEBUG=$(DEBUG) -Icereal/include
 OBJECTS=main.o graphReader.o update.o reader.o utils.o
 
 # Boost settings
-BOOST_ROOT?=/packages/boost/1_73_0
+BOOST_ROOT?=/packages/boost_1_73_0
 CPPFLAGS+=-I$(BOOST_ROOT) -I$(BOOST_ROOT)/include
 LDFLAGS+=-L$(BOOST_ROOT)/lib -Wl,-rpath,$(BOOST_ROOT)/lib
 LIBS=-lboost_serialization -lboost_program_options
@@ -57,11 +57,11 @@ main: $(OBJECTS) $(WILDCARD *.hpp)
 	$(CC) $(LDFLAGS) -o $@  $(OBJECTS) $(LDFLAGS) $(LIBS)
 
 # Convert an edgelist graph to a binary format for use with partitioner
-converter: converter.cpp $(KAHIP_IO_OBJ) $(KAHIP_LIB)
-	$(KAHIP_CXX) $(KAHIP_CXXFLAGS) $(LDFLAGS) -o converter.exe  $^
+convert: converter.cpp graphReader.cpp
+	$(CC) $(CPPFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 partition: partition.cpp graphReader.cpp
-	$(CC) $(CPPFLAGS) $(LDFLAGS) -o $@ $^ $(METIS_LIB)
+	$(CC) $(CPPFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 run: main
 	$(run) $(MPIRUNOPTS) -np 3 ./main input/distributed/g2/input_test input/distributed/g2/sccmap_test input/distributed/g2/change_test 2 1 input/distributed/g2/partition 3 $(RUNOPTS)

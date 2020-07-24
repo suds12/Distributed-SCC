@@ -24,17 +24,17 @@ void GraphReader::read(string filename) {
         exit(1);
     }
     //file.exceptions(std::ifstream::failbit | std::ifstream::badbit);
-    int current_index = 0;
+    idx_t current_index = 0;
     try {
         file.open(filename);
         std::string line;
-        int previous_vertex = 0;    // start indexing vertices at 0
+        idx_t previous_vertex = 0;    // start indexing vertices at 0
         adj_ind.push_back(previous_vertex);
         while (std::getline(file, line)) {
             if (line.empty()) continue;
             //cout << line << endl;
             // line contains the current line
-            std::vector<int> lineData;
+            std::vector<idx_t> lineData;
             std::stringstream lineStream(line);
             if (line[0] == '%' || line[0] == '#') continue;  // skip comments
 
@@ -74,11 +74,12 @@ void GraphReader::read(string filename) {
         std::cerr << "GraphReader::read: Exception opening/reading/closing file" << filename << endl;
     }
     adj_ind.push_back(current_index);
+    this->nedges = current_index;
     adj_vert.shrink_to_fit();
     this->nvertices = maxvertex + 1; // vertex indices start at 0
     //edges.shrink_to_fit();
 #if DEBUG >= 2
-    cout << "Adjacency indices: " << endl; 
+    cout << "nv=" << this->nvertices << ", nedges=" << this->nedges << ", Adjacency indices: " << endl; 
     for (auto it = adj_ind.begin(); it != adj_ind.end(); it++) 
         cout << *it << " ";
     cout << "\nAdjacent vertices in consecutive index order: " << endl; 
@@ -87,4 +88,36 @@ void GraphReader::read(string filename) {
     for (int i = 0; i < vert_weights.size(); i++) cout << vert_weights[i] << " ";
     cout << endl;
 #endif
+}
+
+void GraphReader::writeBinaryEdgelist(string filename) {
+    // Binary format: store the graph in edgelist form, where each edge is represented as pair of idx_t vertex IDs
+    // and weights are integers. So, for a graph with N edges, we have N triplets <idx_t, idx_t, int>    
+    ofstream outfile(filename, ios::out | ios::binary);
+    idx_t i = 0, current=0;
+    for (idx_t v1 = 0; v1 < this->nvertices; v1++) {
+        // Edge is between current adn adj_ind[i]
+        if (adj_ind[i] >= this->nvertices) break; // done
+        for (idx_t v2_ind = adj_ind[i]; v2_ind < adj_ind[i+1]; v2_ind++) {
+            EdgeType edge = {v1,adj_vert[v2_ind],vert_weights[v2_ind]};
+            outfile.write(reinterpret_cast<char *>(&edge), sizeof(edge));
+        }
+        i++;
+    }
+    outfile.close();
+
+#if DEBUG>=2
+    // Read the binary format to verify correctness
+    ifstream fin(filename, ios::in | ios::binary);
+    fin.seekg(0, ifstream::end);
+    int size = fin.tellg() / sizeof (EdgeType);
+    EdgeType tmp[size];
+    fin.seekg(0, ifstream::beg);
+    fin.read(reinterpret_cast<char *>(&tmp), sizeof(tmp));
+    fin.close();
+    cout << "Edgelist read from binary: " << endl;
+    for (int j=0; j < size; j++) cout << tmp[j].v1 << " " << tmp[j].v2 << " " << tmp[j].w << endl;
+#endif
+
+   
 }

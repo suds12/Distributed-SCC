@@ -13,12 +13,18 @@
 #include "metis.h"
 
 using namespace std;
+typedef struct {
+   idx_t v1;
+   idx_t v2;
+   int w;
+} EdgeType;
 
 class GraphReader {
 public:
     GraphReader() : buffer_size(100){}
     GraphReader(int buf) : buffer_size(buf){}
     void read(string filename);
+    void writeBinaryEdgelist(string filename);
 
     int get_num_vert() { return this->nvertices; }
     vector<idx_t>& get_adj_ind() { return this->adj_ind; }
@@ -29,8 +35,9 @@ private:
 private:
     const int buffer_size = 100; // reserve memory in advance
     idx_t nvertices = 0;
-    unordered_set<int> vertices;
-    vector<vector<int>> edges;
+    idx_t nedges = 0;
+    unordered_set<idx_t> vertices;
+    vector<vector<idx_t>> edges;
 
     // For Metis
     vector<idx_t> adj_ind; // Indices of starting points in adjacent array
