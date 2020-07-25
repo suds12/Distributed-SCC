@@ -41,13 +41,18 @@ int main(int argc, char *argv[]){
  
         cout << "Partitioning " << filename << " into " << nParts << " partitions...\n";
 
-
         idx_t nVert = reader.get_num_vert();
         auto xadj = reader.get_adj_ind();
         auto adjncy = reader.get_adj_vert();
         idx_t objval;
         std::vector<idx_t> part(nVert, 0);
         cout << "Partitioning graph with " << nVert << " vertices...\n";
+#if DEBUG>=2
+        cout << nVert << " " << nWeights  <<  " " << nParts << endl;
+        for (auto it = xadj.begin(); it != xadj.end(); it++) cout << *it << " "; cout << endl;
+        for (auto it = adjncy.begin(); it != adjncy.end(); it++) cout << *it << " "; cout << endl;
+#endif
+
         int ret = METIS_PartGraphKway(&nVert,& nWeights, xadj.data(), adjncy.data(),
 				    NULL, NULL, NULL, &nParts, NULL,
        				    NULL, NULL, &objval, part.data());
@@ -94,8 +99,9 @@ int main(int argc, char *argv[]){
         vector<vector<idx_t>> inp_partition(nParts);
         cout << "After reading binary:\n"; 
         for(unsigned i = 0; i < nParts; i++) {
-            stringstream partition_filename_stream;
-            partition_filename_stream << filename <<  "_" << i;
+            string filename_base = filename.substr(0,filename.rfind('.'));
+            ostringstream partition_filename_stream;
+            partition_filename_stream << filename_base <<  ".part_" << std::setw(3) << std::setfill('0') << nParts << "_" << i << ".bin";
             string pfilename = partition_filename_stream.str();
         
             ifstream fin(pfilename, ios::in | ios::binary);

@@ -9,6 +9,14 @@
 #include <vector>
 #include <string>
 
+// For mmap
+#include <fcntl.h>
+#include <unistd.h>  
+#include <stdlib.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/mman.h>
+
 //#include "basic.hpp"
 #include "metis.h"
 
@@ -29,6 +37,8 @@ public:
     int get_num_vert() { return this->nvertices; }
     vector<idx_t>& get_adj_ind() { return this->adj_ind; }
     vector<idx_t>& get_adj_vert() { return this->adj_vert; }
+    void printGraph();
+    uint8_t* openMMap(const string filename);
 private:
 //    void dump_binary(string filename);
 
@@ -43,6 +53,7 @@ private:
     vector<idx_t> adj_ind; // Indices of starting points in adjacent array
     vector<idx_t> adj_vert; // Adjacent vertices in consecutive index order
     vector<idx_t> vert_weights;  // Weights of vertices
+
 };
 
 

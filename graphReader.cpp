@@ -11,6 +11,41 @@
 
 #include "graphReader.hpp"
 
+uint8_t* GraphReader::openMMap(const string filename) {
+    int m_fd;
+    struct stat statbuf;
+    uint8_t * m_ptr_begin;
+
+    if ((m_fd = open(filename.c_str(), O_RDONLY)) < 0) 
+        perror("can't open file for reading");
+
+    if (fstat(m_fd, &statbuf) < 0) 
+        perror("fstat in openMMap failed");
+    auto size=statbuf.st_size;
+#if DEBUG>=1
+    cout << "Memory-mapping file " << filename << " of size " << size << endl;
+#endif
+    
+    if ((m_ptr_begin = (uint8_t *)mmap(0, statbuf.st_size, PROT_READ, MAP_SHARED,  m_fd, 0)) == MAP_FAILED) 
+        perror("mmap in openMMap failed");
+    
+    uint8_t * m_ptr = m_ptr_begin;
+    size = statbuf.st_size;
+    
+    return m_ptr;
+
+    /*
+    //To read:
+    uint8_t *  mmfile = openMMap("my_file", length);        
+    uint32_t * memblockmm;
+    memblockmm = (uint32_t *)mmfile; //cast file to uint32 array
+    uint32_t data = memblockmm[0]; // an integer
+    mmfile += 4; //increment by 4 since we read a 32 bit entry and each entry in mmfile is 8 bits.
+    */
+}
+
+
+
 void GraphReader::read(string filename) {
     std::ifstream file;
     int capacity = this->buffer_size;
@@ -92,15 +127,7 @@ void GraphReader::read(string filename) {
     this->nvertices = maxvertex + 1; // vertex indices start at 0
     //edges.shrink_to_fit();
 #if DEBUG >= 2
-    cout << "nv=" << this->nvertices << ", nedges=" << this->nedges << ", Adjacency indices: " << endl; 
-    for (auto it = adj_ind.begin(); it != adj_ind.end(); it++) 
-        cout << *it << " ";
-    cout << "\nAdjacent vertices in consecutive index order: " << endl; 
-    for (int i = 0; i < adj_vert.size(); i++) cout << adj_vert[i] << " ";
-    cout << endl;
-    for (int i = 0; i < vert_weights.size(); i++) cout << vert_weights[i] << " ";
-    cout << endl;
-    cout << "End of graph.\n";
+    this->printGraph();
 #endif
 }
 
@@ -138,3 +165,13 @@ void GraphReader::writeBinaryEdgelist(string filename) {
    
 }
 
+void GraphReader::printGraph() {
+    cout << "Graph with nvertices=" << this->nvertices << ", nedges=" << this->nedges << ", Adjacency indices: " << endl;
+    for (auto it = adj_ind.begin(); it != adj_ind.end(); it++)
+        cout << *it << " ";
+    cout << "\nAdjacent vertices in consecutive index order: " << endl;
+    for (int i = 0; i < adj_vert.size(); i++) cout << adj_vert[i] << " ";
+    cout << endl;
+    for (int i = 0; i < vert_weights.size(); i++) cout << vert_weights[i] << " ";
+    cout << endl << "End of graph.\n";
+}

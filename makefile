@@ -79,7 +79,7 @@ facebook: main
 	$(run) $(MPIRUNOPTS) -np 3 ./main input/facebook/facebook_combined.txt input/facebook/scc_map input/facebook/changes 2 1 input/facebook/partition_facebook.txt 3 $(RUNOPTS)
 
 clean:
-	$(RM) *.o main partition
+	$(RM) *.o main partition convert
 
 clean_dump:
 	rm dump/*
