@@ -31,7 +31,6 @@ int main(int argc, char *argv[]){
     GraphReader reader(1000);   // buffer size is 1000
     cout << "Reading graph...\n";
     reader.read(filename);      
-    reader.writeBinaryEdgelist(filename+".edgelist.bin");
 
     idx_t nVert = reader.get_num_vert();
     auto xadj = reader.get_adj_ind();
