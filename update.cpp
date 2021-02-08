@@ -170,6 +170,25 @@ void send_meta(char *argv[], Basic& basic, int world_rank)
                                    
 }
 
+void update_global_table(Basic& basic, MetaGraph& meta_graph, int world_rank)
+{
+    basic.global_scc.reserve(boost::num_vertices (meta_graph));
+
+    size_t num_components = boost::strong_components (meta_graph, &basic.global_scc[0]);
+    //cout<<endl<<"::  "<<num_components;
+
+    for (size_t i = 0; i < boost::num_vertices (meta_graph); ++i)
+    {
+        if(basic.meta_nodes.find(basic.global_scc[i]) != basic.meta_nodes.end())
+        {
+            basic.global_scc[i] += global_modifier;
+        }
+        cout << basic.global_scc[i] << " ";
+
+    }
+
+}
+
 void make_meta_graph(char *argv[], Basic& basic, MetaGraph& meta_graph, int world_rank)
 {
 	/*Convert from 2d array to hash map*/

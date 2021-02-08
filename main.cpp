@@ -73,16 +73,16 @@ int main(int argc, char *argv[])
     send_meta(argv,basic,world_rank);
     if(world_rank==0)
     {
-        // cout<<"making meta graph from rank "<<world_rank<<endl;
-        // make_meta_graph(argv,basic,meta_graph,world_rank);
+         cout<<"making meta graph from rank "<<world_rank<<endl;
+         make_meta_graph(argv,basic,meta_graph,world_rank);
 
-        //display(basic,graph,world_rank);
+         display(basic,graph,world_rank);
 
-        // cout<<"Recomputing SCC from rank "<<world_rank<<endl;
-        // recompute_scc(basic,meta_graph,world_rank);
+         cout<<"Recomputing SCC from rank "<<world_rank<<endl;
+         recompute_scc(basic,meta_graph,world_rank);
 
-        // cout<<"Creating results from rank "<<world_rank<<endl;
-        // create_result(basic,meta_graph,world_rank);
+         cout<<"Creating results from rank "<<world_rank<<endl;
+         create_result(basic,meta_graph,world_rank);
 
     }
     //scatter_global(basic,meta_graph,world_rank);
