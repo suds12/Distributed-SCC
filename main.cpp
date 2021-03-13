@@ -60,36 +60,36 @@ int main(int argc, char *argv[])
     cout<<"Performing initial SCC from rank "<<world_rank<<endl;
     perform_scc(argv,basic,graph,world_rank);
 
-    cout<<"Initializing meta vertices from rank "<<world_rank<<endl;
-    init_meta(basic);
+    // cout<<"Initializing meta vertices from rank "<<world_rank<<endl;
+    // init_meta(basic);
 
-    cout<<"make meta vertex from rank "<<world_rank<<endl;
-    make_meta(argv,basic,graph,world_rank);
+    // cout<<"make meta vertex from rank "<<world_rank<<endl;
+    // make_meta(argv,basic,graph,world_rank);
 
-    cout<<"Padding meta vertices from rank "<<world_rank<<endl;
-    padding_meta(basic);
+    // cout<<"Padding meta vertices from rank "<<world_rank<<endl;
+    // padding_meta(basic);
 
-    cout<<"send meta vertex from rank "<<world_rank<<endl;
-    send_meta(argv,basic,world_rank);
-    if(world_rank==0)
-    {
-         cout<<"making meta graph from rank "<<world_rank<<endl;
-         make_meta_graph(argv,basic,meta_graph,world_rank);
+    // cout<<"send meta vertex from rank "<<world_rank<<endl;
+    // send_meta(argv,basic,world_rank);
+    // if(world_rank==0)
+    // {
+    //      cout<<"making meta graph from rank "<<world_rank<<endl;
+    //      make_meta_graph(argv,basic,meta_graph,world_rank);
 
-         display(basic,graph,world_rank);
+    //      display(basic,graph,world_rank);
 
-         cout<<"Recomputing SCC from rank "<<world_rank<<endl;
-         recompute_scc(basic,meta_graph,world_rank);
+    //      cout<<"Recomputing SCC from rank "<<world_rank<<endl;
+    //      recompute_scc(basic,meta_graph,world_rank);
 
-         cout<<"Creating results from rank "<<world_rank<<endl;
-         create_result(basic,meta_graph,world_rank);
+    //      cout<<"Creating results from rank "<<world_rank<<endl;
+    //      create_result(basic,meta_graph,world_rank);
 
-    }
+    // }
     //scatter_global(basic,meta_graph,world_rank);
 
 
 
-    //display(basic,graph,world_rank);
+    display(basic,graph,world_rank);
   	MPI_Finalize();
 	return 0;
 }

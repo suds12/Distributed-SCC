@@ -67,10 +67,13 @@ void read_partitions(char *argv[], Basic& basic, Graph& graph)
             char_count = 0;
             int pid=atoi(buffer);
             basic.partition_of_vertex.insert({lineno, pid});
+            if(world_rank == pid)
+            {
+            	basic.allocated_vertices.push_back(lineno);
+            }
             lineno++;
         }
     }
-
 }
 
 //Function for reading the graph. Each process reads only the edges it is allocated by looking up at the partition hash map
@@ -267,6 +270,8 @@ void read_sccmap(char *argv[], Basic &basic, int world_rank)
 
 void display(Basic &basic, Graph &graph, int world_rank)
 {
+	ofstream vertex_dump("dump/ver_" + std::to_string(world_rank) + ".txt");
+
 	ofstream scc_dump("dump/file_no_" + std::to_string(world_rank) + ".txt");
 	ofstream out_dump("dump/rel_" + std::to_string(world_rank) + ".txt");
 	ofstream inter_dump("dump/int_" + std::to_string(world_rank) + ".txt");
@@ -276,14 +281,11 @@ void display(Basic &basic, Graph &graph, int world_rank)
 	ofstream map_dump("dump/b_out_v" + std::to_string(world_rank) + ".txt");
 	ofstream dump_bor("dump/global_matrix.txt");
 
-	// for(int i=0;i<np;i++)
-	// {
-	// 	// cout<<"\n"<<i<<" : ";
-	// 	// for(unordered_set<int> :: iterator it = mirror_vertices[i].begin(); it != mirror_vertices[i].end();++it)
-	// 	// {
-	// 	// 	cout<<*it;
-	// 	// }
-	// }
+	//display vertices in partition
+	for(auto itr:basic.allocated_vertices)
+	{
+		vertex_dump<<itr<<endl;
+	}
 	vector< vector<int> >::iterator row;
 	vector<int>::iterator col;
 	//unordered_set<int>::iterator it;
@@ -302,71 +304,71 @@ void display(Basic &basic, Graph &graph, int world_rank)
 	// }
 
 	//Display mirrors for specific partition
-	// if(world_rank==0)
-	// {
-	// 	for(auto it : border_out_vertices)
-	// 	{
-	// 		for(auto i : it.second)
-	// 		{
-	// 			mirror_dump<<basic.border_out_vertices[*it][*i]<<" ";
-	// 		}
-	// 	}
-	// }
+	for(auto it : basic.border_out_vertices)
+	{
+		out_dump<<it.first<<" : ";
+		for(auto i : it.second)
+		{
+			out_dump<<i<<" ";
+		}
+		out_dump<<endl;
+	}
+	
 	
 
 	//Display local SCC
-	for (size_t i = 0; i < boost::num_vertices (graph); ++i)
+	for (int i = 0; i < boost::num_vertices (graph); ++i)
 	{
 		if(basic.partition_of_vertex[i]==world_rank)
     		scc_dump << basic.local_scc[i] << " ";
 	}
-	//Display local merge details
-	for(int it=0;it<basic.l_scc.size();it++)
-	{
-		l_scc_dump<<it<<" : ";
-		for(auto itr=basic.l_scc[it].begin(); itr!=basic.l_scc[it].end();itr++)
-			l_scc_dump<<*itr<<" ";
-		l_scc_dump<<endl;
-	}
-	//Display border matrix
-	for(int i =0; i<basic.l_scc.size();i++)
-	{
-		int j=0;
-		meta_dump<<endl;
-		while(basic.border_matrix[i][j] != -1)
-		{
-			meta_dump<<basic.border_matrix[i][j]<<" ";
-			j++;
-		}
-	}
+	// //Display local merge details
+	// for(int it=0;it<basic.l_scc.size();it++)
+	// {
+	// 	l_scc_dump<<it<<" : ";
+	// 	for(auto itr=basic.l_scc[it].begin(); itr!=basic.l_scc[it].end();itr++)
+	// 		l_scc_dump<<*itr<<" ";
+	// 	l_scc_dump<<endl;
+	// }
+	// //Display border matrix
+	// for(int i =0; i<basic.l_scc.size();i++)
+	// {
+	// 	int j=0;
+	// 	meta_dump<<endl;
+	// 	while(basic.border_matrix[i][j] != -1)
+	// 	{
+	// 		meta_dump<<basic.border_matrix[i][j]<<" ";
+	// 		j++;
+	// 	}
+	// }
 
-	//Display out matrix
-	for(int i =0; i<basic.l_scc.size();i++)
-	{
-		int j=0;
+	// //Display out matrix
+	// for(int i =0; i<basic.l_scc.size();i++)
+	// {
+	// 	int j=0;
 		
-		while(basic.out_matrix[i][j] != -1)
-		{
-			out_dump<<basic.out_matrix[i][j]<<" ";
-			j++;
-		}
-		out_dump<<endl;
-	}
-	//display global border matrix
-	if(world_rank == root)
-	{
-		for(int i=0;i<chunk_height * num_partitions;i++)
-		{
-			int j=0;
-			while(basic.global_border_matrix[i][j] != -1)
-			{
-				dump_bor<<basic.global_border_matrix[i][j]<<" ";
-				j++;
-			}
-			dump_bor<<endl;
-		}
+	// 	while(basic.out_matrix[i][j] != -1)
+	// 	{
+	// 		out_dump<<basic.out_matrix[i][j]<<" ";
+	// 		j++;
+	// 	}
+	// 	out_dump<<endl;
+	// }
+	// //display global border matrix
+	// if(world_rank == root)
+	// {
+	// 	for(int i=0;i<chunk_height * num_partitions;i++)
+	// 	{
+	// 		int j=0;
+	// 		while(basic.global_border_matrix[i][j] != -1)
+	// 		{
+	// 			dump_bor<<basic.global_border_matrix[i][j]<<" ";
+	// 			j++;
+	// 		}
+	// 		dump_bor<<endl;
+	// 	}
 		
-	}
+	// }
 	for(int i=0;i<30;i++)
         updated_result<<basic.global_result[i]<<" ";
 	//Display relevant vertices

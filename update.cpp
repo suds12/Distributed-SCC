@@ -50,6 +50,11 @@ void perform_scc(char *argv[], Basic& basic, Graph& graph, int world_rank)   //S
 	}
 }
 
+// void check_border(Basic& basic, int world_rank)
+// {
+	
+// }
+
 void init_meta(Basic& basic)
 {
 	//for(int i=0;i<basic.l_scc.size();i++)

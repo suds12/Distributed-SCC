@@ -22,6 +22,7 @@ public:
 	unordered_set<int> border_vertices;  //Hashset of border vertices. Each process maintains its own.
 	map<int, vector<int>> border_out_vertices; //Hashmap that stores the vertices a specific border vertex has outgoing edges to. Each int is paired with a vector of connecting vertices
 	map<int, vector<int>> border_in_vertices; // Hashmap that stores the vertices a specific border vertex has incoming edges from
+	vector<int> allocated_vertices; //vector of vertices at each partition. Order matters for mapping vertex to scc
 	vector<vector<int>> allocated_graph; //Edge list of partitioned graph. Each process maintains its own
 	vector<vector<int>> allocated_changes; //Edge list of changes. Each process maintains its own
 	//vector<set<int>> local_scc;
@@ -29,9 +30,9 @@ public:
 	vector<unordered_set<int>>temp_scc;
 	vector<unordered_set<int>>l_scc;
 	//unordered_set<int> relevant_vertices; //Hash set of vertices and mirror vertices. Each process maintains its own. Used for removing irrelevent vertices from local_scc
-	vector<int> intersection_set; 
 	vector<vector<int>>merge_detail; 
 	unordered_map<int, int> parent_scc; //Used for creating SCC on disjoint sets using union find
+	
 	// int **border_matrix;
 	// int **out_matrix;
 	vector<vector<int>> border_matrix; //2d matrix of number of local SCC with each local SCC containing its respective border vertices. Needed for forming the meta graph
