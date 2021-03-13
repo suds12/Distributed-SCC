@@ -29,6 +29,7 @@ public:
 	vector<int>local_scc;  //Vector of component id. Each index corresponds to global vertex id. Each process maintains its own. Hence we need to remove vertices indices it does not own
 	vector<unordered_set<int>>temp_scc;
 	vector<unordered_set<int>>l_scc;
+	map<int,int> local_scc_map; //Hashmap of vertex ID to local SCC ID
 	//unordered_set<int> relevant_vertices; //Hash set of vertices and mirror vertices. Each process maintains its own. Used for removing irrelevent vertices from local_scc
 	vector<vector<int>>merge_detail; 
 	unordered_map<int, int> parent_scc; //Used for creating SCC on disjoint sets using union find

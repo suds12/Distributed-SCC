@@ -12,7 +12,7 @@
 #define chunk_width 5
 #define num_partitions 3
 #define root 0
-#define global_modifier 9000
+#define global_modifier 100
 
 
 
@@ -48,12 +48,67 @@ void perform_scc(char *argv[], Basic& basic, Graph& graph, int world_rank)   //S
 		if(!basic.temp_scc[i].empty())
 			basic.l_scc.push_back(basic.temp_scc[i]);
 	}
+	//-----------------
+	//Store local scc in hash table. key =vertex id ; value = local scc id
+	for(int i=0;i<boost::num_vertices (graph);i++) 
+	{
+		if(basic.partition_of_vertex[i]==world_rank)
+		{
+			basic.local_scc_map.insert({i,basic.local_scc[i]});
+		}
+	}
+	// if(world_rank == 2)
+	// {
+	// 	cout<<"----------";
+	// 	for(auto itr : basic.local_scc_map)
+	// 	{
+	// 		cout<<itr.first<<" : "<<itr.second<<endl;
+	// 	}
+	// }
 }
 
-// void check_border(Basic& basic, int world_rank)
-// {
-	
-// }
+int* arr_resize(int* arr, int oldsize, int newsize)
+{
+	int *temp_arr = new int[newsize];
+	for(int i=0; i<oldsize; i++)
+		temp_arr[i] = arr[i];
+	arr=temp_arr;
+	delete[] temp_arr;
+
+	return arr;
+}
+
+
+void prepare_to_send(Basic& basic, int world_rank)
+{
+	//We need to send the border vertices to the respected partitions of its connections
+	int *probe_to_send;
+	probe_to_send = arr_resize(probe_to_send, 0, 100);
+	probe_to_send[0] = 1; //1 at index 0 indicates a probe message. REst of message starts index 1
+	int index=1;
+	for(auto itr : basic.border_out_vertices)
+	{
+		for(auto i : itr.second)
+		{
+			int local_scc_of_vertex = basic.local_scc_map[itr.first];
+			int global_scc_val = (world_rank * global_modifier) + local_scc_of_vertex; 
+			probe_to_send[index] = global_scc_val;
+			probe_to_send[++index] = i;
+			index++;
+		}
+		
+	}
+
+	//test
+	if(world_rank == 2)
+	{
+		for(int i=0; i<index; i++)
+		{
+			cout<<probe_to_send[i]<<" ";
+		}
+	}
+
+}
 
 void init_meta(Basic& basic)
 {

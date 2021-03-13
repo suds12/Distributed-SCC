@@ -60,6 +60,18 @@ int main(int argc, char *argv[])
     cout<<"Performing initial SCC from rank "<<world_rank<<endl;
     perform_scc(argv,basic,graph,world_rank);
 
+    prepare_to_send(basic, world_rank);
+
+    //----------------------
+    // int* temp = new int[2];
+    // temp[0]=1;
+    // temp[1]=2;
+    // for(int i=0; i<10000; i++)
+    //     cout<<temp[i]<<" ";
+
+    // temp=arr_resize(temp,2,100);
+    //----------------------
+
     // cout<<"Initializing meta vertices from rank "<<world_rank<<endl;
     // init_meta(basic);
 
