@@ -24,15 +24,17 @@ public:
 	map<int, vector<int>> border_in_vertices; // Hashmap that stores the vertices a specific border vertex has incoming edges from
 	vector<int> allocated_vertices; //vector of vertices at each partition. Order matters for mapping vertex to scc
 	vector<vector<int>> allocated_graph; //Edge list of partitioned graph. Each process maintains its own
-	vector<vector<int>> allocated_changes; //Edge list of changes. Each process maintains its own
+	//vector<vector<int>> allocated_changes; //Edge list of changes. Each process maintains its own
 	//vector<set<int>> local_scc;
 	vector<int>local_scc;  //Vector of component id. Each index corresponds to global vertex id. Each process maintains its own. Hence we need to remove vertices indices it does not own
 	vector<unordered_set<int>>temp_scc;
 	vector<unordered_set<int>>l_scc;
 	map<int,int> local_scc_map; //Hashmap of vertex ID to local SCC ID
+	unordered_set<int> target_list; //Hash set of all reciever PIDs. EAch process maintains a list PIDs that has a connection with it through border vertices.
+	int *probe_to_send; 
 	//unordered_set<int> relevant_vertices; //Hash set of vertices and mirror vertices. Each process maintains its own. Used for removing irrelevent vertices from local_scc
 	vector<vector<int>>merge_detail; 
-	unordered_map<int, int> parent_scc; //Used for creating SCC on disjoint sets using union find
+	//unordered_map<int, int> parent_scc; //Used for creating SCC on disjoint sets using union find
 	
 	// int **border_matrix;
 	// int **out_matrix;

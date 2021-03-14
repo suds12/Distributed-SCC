@@ -82,9 +82,8 @@ int* arr_resize(int* arr, int oldsize, int newsize)
 void prepare_to_send(Basic& basic, int world_rank)
 {
 	//We need to send the border vertices to the respected partitions of its connections
-	int *probe_to_send;
-	probe_to_send = arr_resize(probe_to_send, 0, 100);
-	probe_to_send[0] = 1; //1 at index 0 indicates a probe message. REst of message starts index 1
+	basic.probe_to_send = arr_resize(basic.probe_to_send, 0, 100);
+	basic.probe_to_send[0] = 1; //1 at index 0 indicates a probe message. REst of message starts index 1
 	int index=1;
 	for(auto itr : basic.border_out_vertices)
 	{
@@ -92,23 +91,27 @@ void prepare_to_send(Basic& basic, int world_rank)
 		{
 			int local_scc_of_vertex = basic.local_scc_map[itr.first];
 			int global_scc_val = (world_rank * global_modifier) + local_scc_of_vertex; 
-			probe_to_send[index] = global_scc_val;
-			probe_to_send[++index] = i;
+			basic.probe_to_send[index] = global_scc_val;
+			basic.probe_to_send[++index] = i;
+			basic.target_list.insert(basic.partition_of_vertex[i]); 
 			index++;
 		}
 		
 	}
 
 	//test
-	if(world_rank == 2)
+	if(world_rank == 1)
 	{
-		for(int i=0; i<index; i++)
-		{
-			cout<<probe_to_send[i]<<" ";
-		}
+		// for(int i=0; i<index; i++)
+		// {
+		// 	cout<<basic.probe_to_send[i]<<" ";
+		// }
+		// for(auto i : basic.target_list)
+		// 	cout<<i<<" - ";
 	}
 
 }
+
 
 void init_meta(Basic& basic)
 {
