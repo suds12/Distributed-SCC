@@ -275,7 +275,7 @@ void display(Basic &basic, Graph &graph, int world_rank)
 	ofstream scc_dump("dump/file_no_" + std::to_string(world_rank) + ".txt");
 	ofstream out_dump("dump/rel_" + std::to_string(world_rank) + ".txt");
 	ofstream inter_dump("dump/int_" + std::to_string(world_rank) + ".txt");
-	ofstream meta_dump("dump/mir_" + std::to_string(world_rank) + ".txt");
+	ofstream probe_dump("dump/probe_" + std::to_string(world_rank) + ".txt");
 	ofstream l_scc_dump("dump/l_scc_" + std::to_string(world_rank) + ".txt");
 	ofstream updated_result("dump/result" + std::to_string(world_rank) + ".txt");
 	ofstream map_dump("dump/b_out_v" + std::to_string(world_rank) + ".txt");
@@ -312,6 +312,11 @@ void display(Basic &basic, Graph &graph, int world_rank)
 			out_dump<<i<<" ";
 		}
 		out_dump<<endl;
+	}
+	//display probe message
+	for(int i=0; i<basic.size_of_probe; i++)
+	{
+		probe_dump<<basic.probe_to_send[i]<<" ";
 	}
 	
 	
@@ -369,8 +374,7 @@ void display(Basic &basic, Graph &graph, int world_rank)
 	// 	}
 		
 	// }
-	for(int i=0;i<30;i++)
-        updated_result<<basic.global_result[i]<<" ";
+	
 	//Display relevant vertices
 	// for(auto it=basic.relevant_vertices.begin(); it!=basic.relevant_vertices.end(); it++)
 	// {
@@ -382,14 +386,7 @@ void display(Basic &basic, Graph &graph, int world_rank)
 	// 	inter_dump<<*it<<" ";
 	// }
     //Display border_in_vertices
-	typedef map<int, vector<int>>::const_iterator MapIterator;
-	for (MapIterator iter = basic.border_in_vertices.begin(); iter != basic.border_in_vertices.end(); iter++)
-	{
-	    map_dump << "Key: " << iter->first << " Values:";
-	    typedef vector<int>::const_iterator ListIterator;
-	    for (ListIterator list_iter = iter->second.begin(); list_iter != iter->second.end(); list_iter++)
-	        map_dump << " " << *list_iter << endl;
-	}
+	
 	//Display border matrix
 	
 

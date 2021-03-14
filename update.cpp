@@ -92,267 +92,356 @@ void prepare_to_send(Basic& basic, int world_rank)
 			int local_scc_of_vertex = basic.local_scc_map[itr.first];
 			int global_scc_val = (world_rank * global_modifier) + local_scc_of_vertex; 
 			basic.probe_to_send[index] = global_scc_val;
-			basic.probe_to_send[++index] = i;
+			index++;
+			basic.probe_to_send[index] = i;
 			basic.target_list.insert(basic.partition_of_vertex[i]); 
 			index++;
 		}
 		
 	}
+	basic.probe_to_send[index] = -1;
+	index++;
+	basic.size_of_probe = index;
+	
 
 	//test
 	if(world_rank == 1)
 	{
-		// for(int i=0; i<index; i++)
-		// {
-		// 	cout<<basic.probe_to_send[i]<<" ";
-		// }
 		// for(auto i : basic.target_list)
 		// 	cout<<i<<" - ";
 	}
 
 }
 
-
-void init_meta(Basic& basic)
+void send_probe(Basic& basic, int world_rank)
 {
-	//for(int i=0;i<basic.l_scc.size();i++)
-	basic.border_matrix.resize(basic.l_scc.size());
-}
+	// mailbox = new int[basic.size_of_probe];
+	// mailbox = basic.probe_to_send;
 
-void make_meta(char *argv[], Basic& basic, Graph& graph, int world_rank)
-{
+	// if(world_rank == 0)
+ // 	{
+	//  	cout<<"mail from p0 : ";
+	//  	for(int i=0; i<basic.size_of_probe; i++)
+	//  	{
+	//  		cout<<basic.probe_to_send[i]<<" ";
+	//  	}
+	//  	cout<<endl;
+	//  }
+
+	int *mailbox; MPI_Win win;   //Window called mailbox created for 1 sided communication
+    //MPI_Win_create_dynamic(MPI_INFO_NULL, MPI_COMM_WORLD, &win);
+
+	/* create private memory */
+ 	MPI_Alloc_mem(basic.size_of_probe*5*sizeof(int), MPI_INFO_NULL, &mailbox);
+ 	if(world_rank == 0)
+ 	{
+	 	//cout<<"mail from p1 : ";
+	 	for(int i=0; i<basic.size_of_probe; i++)
+	 	{
+	 		mailbox[i] = basic.probe_to_send[i];
+	 		//cout<<basic.probe_to_send[i]<<" ";
+	 		cout<<mailbox[i]<<" ";
+	 	}
+	 	//cout<<endl;
+	 }
+
+	/* locally declare memory as remotely accessible */
+	MPI_Win_create(mailbox, basic.size_of_probe*sizeof(int), sizeof(int), MPI_INFO_NULL, MPI_COMM_WORLD, &win);
+ 	//MPI_Win_attach(win, mailbox, basic.size_of_probe*sizeof(int));
+
+ 	/* No local operations prior to this epoch, so give an assertion */
+	MPI_Win_fence(0,win);
+
+	// if(world_rank == 0)
+	// {
+	// 	MPI_Put(mailbox, basic.size_of_probe, MPI_INT, 1, 0, basic.size_of_probe, MPI_INT, win);
+	// }
 	
-	vector<int> bc;
-	for(int i=0;i<basic.l_scc.size();i++)
-	{
-		int border_count=0, out_count=0;
-		for(auto itr=basic.l_scc[i].begin(); itr!=basic.l_scc[i].end();itr++)
-		{
-			//Add borders from both incoming and outgoing edges to border matrix. 
-			if(basic.border_out_vertices.find(*itr) != basic.border_out_vertices.end())
-			{
-				basic.border_matrix[i].push_back(*itr);
-				border_count++;
 
-				for(auto item : basic.border_out_vertices.at(*itr))
-				{
-					basic.out_matrix[i][out_count]=item;
-					out_count++;
-				}
-			}
-			if(basic.border_in_vertices.find(*itr) != basic.border_in_vertices.end())
-			{
-				basic.border_matrix[i].push_back(*itr);
-				border_count++;
-			}	
+	for(auto target : basic.target_list)
+	{
+		//MPI_Put(mailbox, basic.size_of_probe, MPI_INT, target, sizeof(int), basic.size_of_probe, MPI_INT, win);
+		MPI_Put(mailbox, basic.size_of_probe, MPI_INT, target, 0, basic.size_of_probe, MPI_INT, win);
+	}
+
+	//Complete the epoch - this will block until MPI_Get is complete 
+	MPI_Win_fence(0,win);
+	if(world_rank == 1)
+	{
+		cout<<"size "<<basic.size_of_probe<<" mail : ";
+		int i=0;
+		while(mailbox[i] != -1)
+		{
+			//cout<<basic.probe_to_send[i]<<" ";
+			cout<<mailbox[i]<<" ";
+			i++;
+		}
 			
-		}
-		bc.push_back(border_count);
+			
 	}
-	int global_num_scc=0;
-	int local_num_scc=basic.l_scc.size();
-	MPI_Allreduce(&local_num_scc, &global_num_scc, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
-	if(world_rank==0)
-	{
-	 cout<<" "<<global_num_scc;
-	}
-	int global_max_width = 0;
-	int local_max_width = *max_element(bc.begin(), bc.end());
-	MPI_Allreduce(&local_max_width, &global_max_width, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
-	if(world_rank==0)
-	{
-	 cout<<" **"<<global_max_width;
-	}
-	basic.height = global_num_scc;
-	basic.width = global_max_width;
-}
-void padding_meta(Basic& basic)
-{
-	basic.border_matrix.resize(basic.height);
-	basic.global_border_matrix.resize(basic.height * num_partitions, vector<int>(basic.width));
-	for(int i=0;i<basic.height;i++)
-	{
-		for(int j=basic.border_matrix[i].size();j<basic.width;j++)
-		{
-			basic.border_matrix[i].push_back(-1);
-		}
-	}
-	// for(int i=0;i<basic.height * num_partitions;i++)
-	// {
-	// 	for(int j=0;j<basic.width;j++)
-	// 	{
-	// 		basic.global_border_matrix[i][j]=-1;
-	// 	}
-	// }
+
+	//All done with the window - tell MPI there are no more epochs */
+	//MPI_Win_fence(MPI_MODE_NOSUCCEED,win);
+
+	 MPI_Win_free(&win);
+    MPI_Free_mem(mailbox);  
+
+	cout<<"doneeee";
 
 	
-	
-	ofstream fout("dump/bor_" + std::to_string(world_rank));
-	for(int itr=0;itr<basic.border_matrix.size();itr++)
-	{
-		for(int i=0;i<basic.border_matrix[itr].size();i++)
-		{
-			fout<<basic.border_matrix[itr][i]<<" ";
-		}
+    
 
-		fout<<endl;
-	}
-	ofstream fout1("dump/glob_bor_" + std::to_string(world_rank));
-	for(int itr=0;itr<basic.global_border_matrix.size();itr++)
-	{
-		for(int i=0;i<basic.global_border_matrix[itr].size();i++)
-		{
-			fout1<<basic.global_border_matrix[itr][i]<<" ";
-		}
-
-		fout1<<endl;
-	}
-	//basic.border_matrix.resize(basic.height, vector<int>(basic.width, -1));
-	//basic.global_border_matrix.resize((basic.height * num_partitions), vector<int>(basic.width, -1));
 	
+
+ 	// if(world_rank == 2)
+ 	// {
+ 	// 	cout<<" mailbox : ";
+ 	// 	//for(auto i : mailbox)
+ 	// 		cout<<mailbox[1]<<" ";
+ 	// }
 }
 
-void send_meta(char *argv[], Basic& basic, int world_rank)
-{
 
-	/*Each process needs to send its 2d array of columns= border vertices and row= each local SCC to the root process. Likewise another 2d array for out_matrix defined in the above function.
-	This is technically of different shapes in each process depending on the number of border elements so I kept a fixed size array and padded it -1. The challenge
-	here is that root process doesn't know in advance, how many processes are sending so doesn't know how long to wait.
-	There are a few ways you could do this. I am currently doing #4
-	1) The way mentioned in the stack overflow https://stackoverflow.com/questions/53592970/mpi-receiving-data-from-an-unknown-number-of-ranks
-	2) Do an IRecv/ISend and then call a barrier once you know all processes that wanted to send, have, then Recv the right number of messages. This is a danger cause the MPI buffer might fill up if there are too many processes sending. Also might be a bottleneck cause of the barrier.
-	3) Use one-sided communication (MPI 3 standard). Each process that wants to send would just have a space where it says “here is my stuff,” but you’d need a barrier at the end, and also extra memory for every process, since you don’t know which processes will call a put and so don’t want processes trampling over each other’s memory
-	4) If you were going to, say, receive messages from rougly 1/2 the processes it would be better to use an MPI_Gather and just have some ranks send nothing.*/
-	MPI_Gather(basic.border_matrix.data(),  (basic.height * basic.width), MPI_INT,      /* everyone sends 2 ints from local */
-           basic.global_border_matrix.data(), (basic.height * basic.width), MPI_INT,      /* root receives 2 ints each proc into global */
-           root, MPI_COMM_WORLD);   /* recv'ing process is root, all procs in MPI_COMM_WORLD participate */	
+// void init_meta(Basic& basic)
+// {
+// 	//for(int i=0;i<basic.l_scc.size();i++)
+// 	basic.border_matrix.resize(basic.l_scc.size());
+// }
 
-	MPI_Gather(basic.out_matrix,  (chunk_width * chunk_height), MPI_INT,      /* everyone sends 2 ints from local */
-           basic.global_out_matrix, (chunk_width * chunk_height), MPI_INT,      /* root receives 2 ints each proc into global */
-           root, MPI_COMM_WORLD);   /* recv'ing process is root, all procs in MPI_COMM_WORLD participate */	
+// void make_meta(char *argv[], Basic& basic, Graph& graph, int world_rank)
+// {
+	
+// 	vector<int> bc;
+// 	for(int i=0;i<basic.l_scc.size();i++)
+// 	{
+// 		int border_count=0, out_count=0;
+// 		for(auto itr=basic.l_scc[i].begin(); itr!=basic.l_scc[i].end();itr++)
+// 		{
+// 			//Add borders from both incoming and outgoing edges to border matrix. 
+// 			if(basic.border_out_vertices.find(*itr) != basic.border_out_vertices.end())
+// 			{
+// 				basic.border_matrix[i].push_back(*itr);
+// 				border_count++;
+
+// 				for(auto item : basic.border_out_vertices.at(*itr))
+// 				{
+// 					basic.out_matrix[i][out_count]=item;
+// 					out_count++;
+// 				}
+// 			}
+// 			if(basic.border_in_vertices.find(*itr) != basic.border_in_vertices.end())
+// 			{
+// 				basic.border_matrix[i].push_back(*itr);
+// 				border_count++;
+// 			}	
+			
+// 		}
+// 		bc.push_back(border_count);
+// 	}
+// 	int global_num_scc=0;
+// 	int local_num_scc=basic.l_scc.size();
+// 	MPI_Allreduce(&local_num_scc, &global_num_scc, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
+// 	if(world_rank==0)
+// 	{
+// 	 cout<<" "<<global_num_scc;
+// 	}
+// 	int global_max_width = 0;
+// 	int local_max_width = *max_element(bc.begin(), bc.end());
+// 	MPI_Allreduce(&local_max_width, &global_max_width, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
+// 	if(world_rank==0)
+// 	{
+// 	 cout<<" **"<<global_max_width;
+// 	}
+// 	basic.height = global_num_scc;
+// 	basic.width = global_max_width;
+// }
+// void padding_meta(Basic& basic)
+// {
+// 	basic.border_matrix.resize(basic.height);
+// 	basic.global_border_matrix.resize(basic.height * num_partitions, vector<int>(basic.width));
+// 	for(int i=0;i<basic.height;i++)
+// 	{
+// 		for(int j=basic.border_matrix[i].size();j<basic.width;j++)
+// 		{
+// 			basic.border_matrix[i].push_back(-1);
+// 		}
+// 	}
+// 	// for(int i=0;i<basic.height * num_partitions;i++)
+// 	// {
+// 	// 	for(int j=0;j<basic.width;j++)
+// 	// 	{
+// 	// 		basic.global_border_matrix[i][j]=-1;
+// 	// 	}
+// 	// }
+
+	
+	
+// 	ofstream fout("dump/bor_" + std::to_string(world_rank));
+// 	for(int itr=0;itr<basic.border_matrix.size();itr++)
+// 	{
+// 		for(int i=0;i<basic.border_matrix[itr].size();i++)
+// 		{
+// 			fout<<basic.border_matrix[itr][i]<<" ";
+// 		}
+
+// 		fout<<endl;
+// 	}
+// 	ofstream fout1("dump/glob_bor_" + std::to_string(world_rank));
+// 	for(int itr=0;itr<basic.global_border_matrix.size();itr++)
+// 	{
+// 		for(int i=0;i<basic.global_border_matrix[itr].size();i++)
+// 		{
+// 			fout1<<basic.global_border_matrix[itr][i]<<" ";
+// 		}
+
+// 		fout1<<endl;
+// 	}
+// 	//basic.border_matrix.resize(basic.height, vector<int>(basic.width, -1));
+// 	//basic.global_border_matrix.resize((basic.height * num_partitions), vector<int>(basic.width, -1));
+	
+// }
+
+// void send_meta(char *argv[], Basic& basic, int world_rank)
+// {
+
+// 	Each process needs to send its 2d array of columns= border vertices and row= each local SCC to the root process. Likewise another 2d array for out_matrix defined in the above function.
+// 	This is technically of different shapes in each process depending on the number of border elements so I kept a fixed size array and padded it -1. The challenge
+// 	here is that root process doesn't know in advance, how many processes are sending so doesn't know how long to wait.
+// 	There are a few ways you could do this. I am currently doing #4
+// 	1) The way mentioned in the stack overflow https://stackoverflow.com/questions/53592970/mpi-receiving-data-from-an-unknown-number-of-ranks
+// 	2) Do an IRecv/ISend and then call a barrier once you know all processes that wanted to send, have, then Recv the right number of messages. This is a danger cause the MPI buffer might fill up if there are too many processes sending. Also might be a bottleneck cause of the barrier.
+// 	3) Use one-sided communication (MPI 3 standard). Each process that wants to send would just have a space where it says “here is my stuff,” but you’d need a barrier at the end, and also extra memory for every process, since you don’t know which processes will call a put and so don’t want processes trampling over each other’s memory
+// 	4) If you were going to, say, receive messages from rougly 1/2 the processes it would be better to use an MPI_Gather and just have some ranks send nothing.
+// 	MPI_Gather(basic.border_matrix.data(),  (basic.height * basic.width), MPI_INT,      /* everyone sends 2 ints from local */
+//            basic.global_border_matrix.data(), (basic.height * basic.width), MPI_INT,      /* root receives 2 ints each proc into global */
+//            root, MPI_COMM_WORLD);   /* recv'ing process is root, all procs in MPI_COMM_WORLD participate */	
+
+// 	MPI_Gather(basic.out_matrix,  (chunk_width * chunk_height), MPI_INT,      /* everyone sends 2 ints from local */
+//            basic.global_out_matrix, (chunk_width * chunk_height), MPI_INT,      /* root receives 2 ints each proc into global */
+//            root, MPI_COMM_WORLD);   /* recv'ing process is root, all procs in MPI_COMM_WORLD participate */	
                                    
-}
+// }
 
-void update_global_table(Basic& basic, MetaGraph& meta_graph, int world_rank)
-{
-    basic.global_scc.reserve(boost::num_vertices (meta_graph));
+// void update_global_table(Basic& basic, MetaGraph& meta_graph, int world_rank)
+// {
+//     basic.global_scc.reserve(boost::num_vertices (meta_graph));
 
-    size_t num_components = boost::strong_components (meta_graph, &basic.global_scc[0]);
-    //cout<<endl<<"::  "<<num_components;
+//     size_t num_components = boost::strong_components (meta_graph, &basic.global_scc[0]);
+//     //cout<<endl<<"::  "<<num_components;
 
-    for (size_t i = 0; i < boost::num_vertices (meta_graph); ++i)
-    {
-        if(basic.meta_nodes.find(basic.global_scc[i]) != basic.meta_nodes.end())
-        {
-            basic.global_scc[i] += global_modifier;
-        }
-        cout << basic.global_scc[i] << " ";
+//     for (size_t i = 0; i < boost::num_vertices (meta_graph); ++i)
+//     {
+//         if(basic.meta_nodes.find(basic.global_scc[i]) != basic.meta_nodes.end())
+//         {
+//             basic.global_scc[i] += global_modifier;
+//         }
+//         cout << basic.global_scc[i] << " ";
 
-    }
+//     }
 
-}
+// }
 
-void make_meta_graph(char *argv[], Basic& basic, MetaGraph& meta_graph, int world_rank)
-{
-	/*Convert from 2d array to hash map*/
-	// for(int row=0; row<basic.global_border_matrix.size();row++)
-	// {
-	// 	for(int i=0; i<basic.global_border_matrix[row].size();i++)
-	// 	{
-	// 		cout<<basic.global_border_matrix[row][i]<<" ";
-	// 	}
-	// 	cout<<endl;
-	// }
+// void make_meta_graph(char *argv[], Basic& basic, MetaGraph& meta_graph, int world_rank)
+// {
+// 	/*Convert from 2d array to hash map*/
+// 	// for(int row=0; row<basic.global_border_matrix.size();row++)
+// 	// {
+// 	// 	for(int i=0; i<basic.global_border_matrix[row].size();i++)
+// 	// 	{
+// 	// 		cout<<basic.global_border_matrix[row][i]<<" ";
+// 	// 	}
+// 	// 	cout<<endl;
+// 	// }
 
-	cout<<"done";
-	for(int i =0; i<num_partitions*chunk_height;i++)
-	{
-		int j=0;
-		unordered_set<int> temp;
-		while(basic.global_border_matrix[i][j] != -1)
-		{		
-			temp.insert(basic.global_border_matrix[i][j]);
-			j++;
-		}
-		basic.global_border_vector.push_back({i,temp});
-	}
-	for(int i =0; i<num_partitions*chunk_height;i++)
-	{
-		int j=0;
-		while(basic.global_out_matrix[i][j] != -1)
-		{		
-			for(auto row:basic.global_border_vector)
-			{
-				if(row.second.find(basic.global_out_matrix[i][j]) != row.second.end())
-				{
-					//cout<<basic.global_out_matrix[i][j]<<" found in SCC "<<row.first<<endl;
-					cout<<i<<" -> "<<row.first<<endl;
-					boost::add_vertex (i, meta_graph);
-					basic.meta_nodes.insert(i);
-					boost::add_vertex (row.first, meta_graph);
-					basic.meta_nodes.insert(row.first);
-					boost::add_edge (i, row.first, meta_graph);
+// 	cout<<"done";
+// 	for(int i =0; i<num_partitions*chunk_height;i++)
+// 	{
+// 		int j=0;
+// 		unordered_set<int> temp;
+// 		while(basic.global_border_matrix[i][j] != -1)
+// 		{		
+// 			temp.insert(basic.global_border_matrix[i][j]);
+// 			j++;
+// 		}
+// 		basic.global_border_vector.push_back({i,temp});
+// 	}
+// 	for(int i =0; i<num_partitions*chunk_height;i++)
+// 	{
+// 		int j=0;
+// 		while(basic.global_out_matrix[i][j] != -1)
+// 		{		
+// 			for(auto row:basic.global_border_vector)
+// 			{
+// 				if(row.second.find(basic.global_out_matrix[i][j]) != row.second.end())
+// 				{
+// 					//cout<<basic.global_out_matrix[i][j]<<" found in SCC "<<row.first<<endl;
+// 					cout<<i<<" -> "<<row.first<<endl;
+// 					boost::add_vertex (i, meta_graph);
+// 					basic.meta_nodes.insert(i);
+// 					boost::add_vertex (row.first, meta_graph);
+// 					basic.meta_nodes.insert(row.first);
+// 					boost::add_edge (i, row.first, meta_graph);
 
-				}
-			}
-			j++;
-		}
-	}
+// 				}
+// 			}
+// 			j++;
+// 		}
+// 	}
 	
-} 
-void recompute_scc(Basic& basic, MetaGraph& meta_graph, int world_rank)
-{
-	basic.global_scc.reserve(boost::num_vertices (meta_graph));
+// } 
+// void recompute_scc(Basic& basic, MetaGraph& meta_graph, int world_rank)
+// {
+// 	basic.global_scc.reserve(boost::num_vertices (meta_graph));
 
-	size_t num_components = boost::strong_components (meta_graph, &basic.global_scc[0]);
-	//cout<<endl<<"::  "<<num_components;
+// 	size_t num_components = boost::strong_components (meta_graph, &basic.global_scc[0]);
+// 	//cout<<endl<<"::  "<<num_components;
 
-	for (size_t i = 0; i < boost::num_vertices (meta_graph); ++i)
-	{
-		if(basic.meta_nodes.find(basic.global_scc[i]) != basic.meta_nodes.end())
-		{
-			basic.global_scc[i] += global_modifier;
-		}
-		cout << basic.global_scc[i] << " ";
+// 	for (size_t i = 0; i < boost::num_vertices (meta_graph); ++i)
+// 	{
+// 		if(basic.meta_nodes.find(basic.global_scc[i]) != basic.meta_nodes.end())
+// 		{
+// 			basic.global_scc[i] += global_modifier;
+// 		}
+// 		cout << basic.global_scc[i] << " ";
 
-	}
+// 	}
 
-}
+// }
 
-void create_result(Basic& basic, MetaGraph& meta_graph, int world_rank)
-{
-	//Create a vector with the global SCC IDs that could be scattered back to the respective tasks
-	//This is definitely an unnecessary task and should think of a better way of creating it that doesn't involve iterating over the size of all local SCCs
-	int count=0;
-	cout<<endl<<"result : ";
-	for (size_t i = 0; i < boost::num_vertices (meta_graph); ++i)
-	{
-		if(basic.global_scc[i] >= global_modifier)
-		{
-			basic.global_result[i]=basic.global_scc[i];
-			count++;
-		}
-		else
-		{
-			basic.global_result[i]=-1;
-			count++;
-		}
+// void create_result(Basic& basic, MetaGraph& meta_graph, int world_rank)
+// {
+// 	//Create a vector with the global SCC IDs that could be scattered back to the respective tasks
+// 	//This is definitely an unnecessary task and should think of a better way of creating it that doesn't involve iterating over the size of all local SCCs
+// 	int count=0;
+// 	cout<<endl<<"result : ";
+// 	for (size_t i = 0; i < boost::num_vertices (meta_graph); ++i)
+// 	{
+// 		if(basic.global_scc[i] >= global_modifier)
+// 		{
+// 			basic.global_result[i]=basic.global_scc[i];
+// 			count++;
+// 		}
+// 		else
+// 		{
+// 			basic.global_result[i]=-1;
+// 			count++;
+// 		}
 
-		cout<<basic.global_result[i]<<" ";
-	}
-	cout<<endl<<count;
+// 		cout<<basic.global_result[i]<<" ";
+// 	}
+// 	cout<<endl<<count;
 	
 
-}
+// }
 
-void scatter_global(Basic& basic, MetaGraph& meta_graph, int world_rank)
-{
-	MPI_Scatter(basic.global_result,  (chunk_height), MPI_INT,       //everyone recieves chunk_height ints from result 
-           basic.local_result, (chunk_height), MPI_INT,      
-           root, MPI_COMM_WORLD); 
+// void scatter_global(Basic& basic, MetaGraph& meta_graph, int world_rank)
+// {
+// 	MPI_Scatter(basic.global_result,  (chunk_height), MPI_INT,       //everyone recieves chunk_height ints from result 
+//            basic.local_result, (chunk_height), MPI_INT,      
+//            root, MPI_COMM_WORLD); 
 
-	cout<<"done";
-}
+// 	cout<<"done";
+// }
 
 // void disjoint_union(Basic& basic, int world_rank)
 // {
@@ -411,26 +500,4 @@ void scatter_global(Basic& basic, MetaGraph& meta_graph, int world_rank)
 
 
 //template func to test if two sets are disjoint
-template<class Set1, class Set2> 
-bool is_disjoint(const Set1 &set1, const Set2 &set2)
-{
-    if(set1.empty() || set2.empty()) return true;
 
-    typename Set1::const_iterator 
-        it1 = set1.begin(), 
-        it1End = set1.end();
-    typename Set2::const_iterator 
-        it2 = set2.begin(), 
-        it2End = set2.end();
-
-    if(*it1 > *set2.rbegin() || *it2 > *set1.rbegin()) return true;
-
-    while(it1 != it1End && it2 != it2End)
-    {
-        if(*it1 == *it2) return false;
-        if(*it1 < *it2) { it1++; }
-        else { it2++; }
-    }
-
-    return true;
-}

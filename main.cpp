@@ -20,6 +20,7 @@ int main(int argc, char *argv[])
 {
     
     //-----------------------------------
+    
 	// Initialize the MPI environment
     MPI_Init(NULL, NULL);
     // Get the number of processes
@@ -36,10 +37,8 @@ int main(int argc, char *argv[])
     fflush(stdout);
 #endif
 
-    //shared_scc(argc, argv);
-    //Reader r1;
-  
 
+  
     Basic basic;
     Graph graph;
     Graph changes;
@@ -61,6 +60,9 @@ int main(int argc, char *argv[])
     perform_scc(argv,basic,graph,world_rank);
 
     prepare_to_send(basic, world_rank);
+
+    send_probe(basic, world_rank);
+    
 
     //----------------------
     // int* temp = new int[2];
@@ -99,9 +101,9 @@ int main(int argc, char *argv[])
     // }
     //scatter_global(basic,meta_graph,world_rank);
 
-
-
     display(basic,graph,world_rank);
+   
+
   	MPI_Finalize();
 	return 0;
 }

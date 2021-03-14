@@ -32,54 +32,55 @@ public:
 	map<int,int> local_scc_map; //Hashmap of vertex ID to local SCC ID
 	unordered_set<int> target_list; //Hash set of all reciever PIDs. EAch process maintains a list PIDs that has a connection with it through border vertices.
 	int *probe_to_send; 
+	int size_of_probe;
 	//unordered_set<int> relevant_vertices; //Hash set of vertices and mirror vertices. Each process maintains its own. Used for removing irrelevent vertices from local_scc
-	vector<vector<int>>merge_detail; 
+	//vector<vector<int>>merge_detail; 
 	//unordered_map<int, int> parent_scc; //Used for creating SCC on disjoint sets using union find
 	
 	// int **border_matrix;
 	// int **out_matrix;
-	vector<vector<int>> border_matrix; //2d matrix of number of local SCC with each local SCC containing its respective border vertices. Needed for forming the meta graph
-    int out_matrix[c_height][c_width];  ////2d matrix of number of local SCC with each local SCC containing the vertices from other partitions that connects to the respective border vertex
-    vector<vector<int>> global_border_matrix;
+	//vector<vector<int>> border_matrix; //2d matrix of number of local SCC with each local SCC containing its respective border vertices. Needed for forming the meta graph
+    //int out_matrix[c_height][c_width];  ////2d matrix of number of local SCC with each local SCC containing the vertices from other partitions that connects to the respective border vertex
+    //vector<vector<int>> global_border_matrix;
     //int global_border_matrix[c_height * np][c_width]; //Stored only in the root. Contains border matrices from all partitions stacked on top of each other.
-    int global_out_matrix[c_height * np][c_width]; //Similarly for out_matrix
-    vector<pair<int, unordered_set<int>>> global_border_vector; //
-    vector<int> global_scc;
-    int global_result[1000];
-    int local_result[c_height * np];
-    int height;
-    int width;
+ //    int global_out_matrix[c_height * np][c_width]; //Similarly for out_matrix
+ //    vector<pair<int, unordered_set<int>>> global_border_vector; //
+ //    vector<int> global_scc;
+ //    int global_result[1000];
+ //    int local_result[c_height * np];
+ //    int height;
+ //    int width;
 
 
-	unordered_set<int> meta_nodes; //A set maintained in root process that holds the list of meta nodes
+	// unordered_set<int> meta_nodes; //A set maintained in root process that holds the list of meta nodes
 
 
-	int iteration;
-	int nrows; //Number of SCCs
-	int ncols;  //Size of biggest SCC(only borders)
+	// int iteration;
+	// int nrows; //Number of SCCs
+	// int ncols;  //Size of biggest SCC(only borders)
 
-	void alloc_2d_init(int rows, int cols);
-	void resize_2d_array(int **array, int height, int width);
+	// void alloc_2d_init(int rows, int cols);
+	// void resize_2d_array(int **array, int height, int width);
 
-	Basic()
-	{
-		//Definitely not the optimal way of doing it. Should work on improving this
-        int nrows = height;  //num of local SCC. Set it to appropriate vale
-        int ncols = width;  //Max size of borders of SCC
-		// int** border_matrix = new int*[nrows];
-		// int** out_matrix = new int*[nrows];
-		// for(int i = 0; i < nrows; ++i)
-		// {
-		//     border_matrix[i] = new int[ncols];
-		//     out_matrix[i] = new int[ncols];
-		// }
+	// Basic()
+	// {
+	// 	//Definitely not the optimal way of doing it. Should work on improving this
+ //        int nrows = height;  //num of local SCC. Set it to appropriate vale
+ //        int ncols = width;  //Max size of borders of SCC
+	// 	// int** border_matrix = new int*[nrows];
+	// 	// int** out_matrix = new int*[nrows];
+	// 	// for(int i = 0; i < nrows; ++i)
+	// 	// {
+	// 	//     border_matrix[i] = new int[ncols];
+	// 	//     out_matrix[i] = new int[ncols];
+	// 	// }
 
-		// memset(arr, 0, (10*20*) * (sizeof *arr));
-		//memset(border_matrix, -1, sizeof(int)*nrows*ncols);
-		memset(out_matrix, -1, sizeof(int)*nrows*ncols);
+	// 	// memset(arr, 0, (10*20*) * (sizeof *arr));
+	// 	//memset(border_matrix, -1, sizeof(int)*nrows*ncols);
+	// 	//memset(out_matrix, -1, sizeof(int)*nrows*ncols);
 
 
-	}
+	// }
 
 
 
