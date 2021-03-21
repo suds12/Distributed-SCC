@@ -13,6 +13,7 @@
 #define num_partitions 3
 #define root 0
 #define global_modifier 100
+#define mailbox_displacement 100
 
 
 
@@ -113,7 +114,7 @@ void prepare_to_send(Basic& basic, int world_rank)
 
 }
 
-void send_probe(Basic& basic, int world_rank)
+void send_probe(Basic& basic, int world_rank, int world_size)
 {
 	// mailbox = new int[basic.size_of_probe];
 	// mailbox = basic.probe_to_send;
@@ -129,39 +130,31 @@ void send_probe(Basic& basic, int world_rank)
 	//  }
 
 	int *mailbox; MPI_Win win;   //Window called mailbox created for 1 sided communication
-    //MPI_Win_create_dynamic(MPI_INFO_NULL, MPI_COMM_WORLD, &win);
 
 	/* create private memory */
- 	MPI_Alloc_mem(basic.size_of_probe*5*sizeof(int), MPI_INFO_NULL, &mailbox);
- 	if(world_rank == 0)
+ 	MPI_Alloc_mem(world_size * mailbox_displacement * sizeof(int), MPI_INFO_NULL, &mailbox);
+ 	
+ 	//cout<<"mail from p1 : ";
+ 	for(int i=0; i<basic.size_of_probe; i++)
  	{
-	 	//cout<<"mail from p1 : ";
-	 	for(int i=0; i<basic.size_of_probe; i++)
-	 	{
-	 		mailbox[i] = basic.probe_to_send[i];
-	 		//cout<<basic.probe_to_send[i]<<" ";
-	 		cout<<mailbox[i]<<" ";
-	 	}
-	 	//cout<<endl;
-	 }
+ 		mailbox[(world_rank * mailbox_displacement) + i] = basic.probe_to_send[i];
+ 		//cout<<basic.probe_to_send[i]<<" ";
+ 		//cout<<mailbox[(world_rank * mailbox_displacement) + i]<<" ";
+ 	}
+ 	//cout<<endl;
+
 
 	/* locally declare memory as remotely accessible */
 	MPI_Win_create(mailbox, basic.size_of_probe*sizeof(int), sizeof(int), MPI_INFO_NULL, MPI_COMM_WORLD, &win);
- 	//MPI_Win_attach(win, mailbox, basic.size_of_probe*sizeof(int));
 
  	/* No local operations prior to this epoch, so give an assertion */
 	MPI_Win_fence(0,win);
-
-	// if(world_rank == 0)
-	// {
-	// 	MPI_Put(mailbox, basic.size_of_probe, MPI_INT, 1, 0, basic.size_of_probe, MPI_INT, win);
-	// }
 	
 
 	for(auto target : basic.target_list)
 	{
 		//MPI_Put(mailbox, basic.size_of_probe, MPI_INT, target, sizeof(int), basic.size_of_probe, MPI_INT, win);
-		MPI_Put(mailbox, basic.size_of_probe, MPI_INT, target, 0, basic.size_of_probe, MPI_INT, win);
+		MPI_Put(mailbox + (world_rank * mailbox_displacement), basic.size_of_probe, MPI_INT, target, (world_rank * mailbox_displacement), basic.size_of_probe, MPI_INT, win);
 	}
 
 	//Complete the epoch - this will block until MPI_Get is complete 

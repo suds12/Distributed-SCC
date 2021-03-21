@@ -61,7 +61,7 @@ int main(int argc, char *argv[])
 
     prepare_to_send(basic, world_rank);
 
-    send_probe(basic, world_rank);
+    send_probe(basic, world_rank, world_size);
     
 
     //----------------------
