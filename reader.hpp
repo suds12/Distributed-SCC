@@ -304,20 +304,21 @@ void display(Basic &basic, Graph &graph, int world_rank)
 	// }
 
 	//Display mirrors for specific partition
-	for(auto it : basic.border_out_vertices)
-	{
-		out_dump<<it.first<<" : ";
-		for(auto i : it.second)
-		{
-			out_dump<<i<<" ";
-		}
-		out_dump<<endl;
-	}
-	//display probe message
-	for(int i=0; i<basic.size_of_probe; i++)
-	{
-		probe_dump<<basic.probe_to_send[i]<<" ";
-	}
+	// for(auto it : basic.border_out_vertices)
+	// {
+	// 	out_dump<<it.first<<" : ";
+	// 	for(auto i : it.second)
+	// 	{
+	// 		out_dump<<i<<" ";
+	// 	}
+	// 	out_dump<<endl;
+	// }
+	// //display probe message
+	// for(int i=0; i<basic.size_of_probe; i++)
+	// {
+	// 	probe_dump<<basic.probe_to_send[i]<<" ";
+	// }
+	//----------------------------
 	
 	
 
