@@ -6,7 +6,7 @@ run=$(mpi_base)/bin/mpirun
 
 
 all: main.cpp 
-	$(CC) -o main -g -w main.cpp  -I$(boost) -lmpich -std=c++11
+	$(CC) -o main -g -w main.cpp -I$(boost)   -std=c++11
 
 debug: 
 	$(run) -np 3 xterm -hold -e gdb -ex ./main input/distributed/g2/input_test input/distributed/g2/sccmap_test input/distributed/g2/change_test 2 1 input/distributed/g2/partition 3
