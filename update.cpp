@@ -56,6 +56,7 @@ void perform_scc(char *argv[], Basic& basic, Graph& graph, int world_rank)   //S
 		if(basic.partition_of_vertex[i]==world_rank)
 		{
 			basic.local_scc_map.insert({i,basic.local_scc[i]});
+			basic.meta_nodes.insert((world_rank * global_modifier) + basic.local_scc[i]);   //Store all global SCC IDs in a set for future use
 		}
 	}
 	// if(world_rank == 2)
@@ -114,6 +115,37 @@ void prepare_to_send(Basic& basic, int world_rank)
 
 }
 
+void bcast_meta_nodes(Basic& basic, int world_rank, int world_size)
+{
+	int index=0;
+	int* probe_meta_node;
+	int *rbuf;  
+
+	probe_meta_node = arr_resize(probe_meta_node, 0, 100);
+	for(auto temp : basic.meta_nodes)
+	{
+		probe_meta_node[index] = temp;
+		index++;
+	}
+	// if(world_rank == 1)
+	// {
+	// 	for(int i=0; i<index; i++)
+	// 	{
+	// 		cout<<"meta : "<<probe_meta_node[i]<<" ";
+	// 	}
+	// }
+	rbuf = (int *)malloc(world_size*10*sizeof(int)); 
+	MPI_Allgather( probe_meta_node, index, MPI_INT, rbuf, index, MPI_INT, MPI_COMM_WORLD);
+
+	if(world_rank == 2)
+	{
+		for(int i=0; i< 10; i++)
+		{
+			cout<<rbuf[i]<<" ";
+		}
+	}
+}
+
 void send_probe(Basic& basic, int world_rank, int world_size)
 {
 	// mailbox = new int[basic.size_of_probe];
@@ -159,19 +191,19 @@ void send_probe(Basic& basic, int world_rank, int world_size)
 
 	//Complete the epoch - this will block until MPI_Get is complete 
 	MPI_Win_fence(0,win);
-	if(world_rank == 1)
-	{
-		cout<<"size "<<basic.size_of_probe<<" mail : ";
-		int i=0;
-		while(mailbox[i] != -1)
-		{
-			//cout<<basic.probe_to_send[i]<<" ";
-			cout<<mailbox[i]<<" ";
-			i++;
-		}
+	// if(world_rank == 1)
+	// {
+	// 	cout<<"size "<<basic.size_of_probe<<" mail : ";
+	// 	int i=0;
+	// 	while(mailbox[i] != -1)
+	// 	{
+	// 		//cout<<basic.probe_to_send[i]<<" ";
+	// 		cout<<mailbox[i]<<" ";
+	// 		i++;
+	// 	}
 			
 			
-	}
+	// }
 
 	//All done with the window - tell MPI there are no more epochs */
 	//MPI_Win_fence(MPI_MODE_NOSUCCEED,win);

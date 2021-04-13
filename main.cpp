@@ -61,6 +61,8 @@ int main(int argc, char *argv[])
 
     prepare_to_send(basic, world_rank);
 
+    bcast_meta_nodes(basic, world_rank, world_size);
+
     send_probe(basic, world_rank, world_size);
     
 

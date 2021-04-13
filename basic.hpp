@@ -20,6 +20,7 @@ public:
 	map<int, int> partition_of_vertex; //Hashmap of partition id for each vertex
 	map<int, int> init_scc_of_vertex; //Hashmap of initial scc id for each vertex. This is read from sccmap file.
 	unordered_set<int> border_vertices;  //Hashset of border vertices. Each process maintains its own.
+	unordered_set<int> meta_nodes;  //Hashset of global SCC IDs. Each process maintains its own.
 	map<int, vector<int>> border_out_vertices; //Hashmap that stores the vertices a specific border vertex has outgoing edges to. Each int is paired with a vector of connecting vertices
 	map<int, vector<int>> border_in_vertices; // Hashmap that stores the vertices a specific border vertex has incoming edges from
 	vector<int> allocated_vertices; //vector of vertices at each partition. Order matters for mapping vertex to scc
