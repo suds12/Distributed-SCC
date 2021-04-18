@@ -9,7 +9,8 @@
 #define chunk_height 3
 #define chunk_width 5
 #define num_partitions 3
-#define root 0
+//#define root 0
+
 
 using namespace std;
 
@@ -43,6 +44,8 @@ const char* get_file_map_info(const char* fname, size_t& num_bytes, int& world_r
     return addr;
 }
 
+
+
 //This function reads the partition id for each vertex from the partition file. The global_SCC disjoint set is also allocated here. Each
 void read_partitions(char *argv[], Basic& basic, Graph& graph)
 {
@@ -69,7 +72,7 @@ void read_partitions(char *argv[], Basic& basic, Graph& graph)
             basic.partition_of_vertex.insert({lineno, pid});
             if(world_rank == pid)
             {
-            	basic.allocated_vertices.push_back(lineno);
+            	basic.allocated_vertices.insert(lineno);
             }
             lineno++;
         }
@@ -80,6 +83,7 @@ void read_partitions(char *argv[], Basic& basic, Graph& graph)
 void read_graph(char *argv[], Basic &basic, Graph& graph, int world_rank)
 {
 	int node1,node2;
+	int edgeno = 0, highest_id = 0;
 	char letter = '\0'; 
     int char_count = 0; 
     int lineno=0;
@@ -87,6 +91,9 @@ void read_graph(char *argv[], Basic &basic, Graph& graph, int world_rank)
 	char* buffer = new char[64]();
 	char* token = nullptr; 
     const char *input_pointer  = get_file_map_info(argv[1], num_bytes_input, world_rank);
+
+    //Resize inpute arrays
+
 
     for (int i = 0; i < num_bytes_input; i++)
     {
@@ -111,6 +118,13 @@ void read_graph(char *argv[], Basic &basic, Graph& graph, int world_rank)
             	//Here we allocate an edge to the two processes that holds the vertices
 				if(world_rank == basic.partition_of_vertex.at(node1) or world_rank == basic.partition_of_vertex.at(node2))
 				{
+					basic.allocated_edge_n1[edgeno] = node1;
+					basic.allocated_edge_n2[edgeno] = node2;
+					edgeno++;
+					if(node1 > highest_id)
+						highest_id = node1;
+					if(node2 > highest_id)
+						highest_id = node2;
 					boost::add_edge (node1, node2, graph);  //Storing in boost ajacency list.
 					//store border vertices and store the vertices a specific border vertex has outgoing edges to. This is stored seperately and is only used for merging. Not included while performing local SCC.
 					if(world_rank == basic.partition_of_vertex.at(node1))
@@ -148,6 +162,13 @@ void read_graph(char *argv[], Basic &basic, Graph& graph, int world_rank)
             	//Here we allocate an edge only to the process that holds both the vertices
 				if(world_rank == basic.partition_of_vertex.at(node1))
 				{
+					basic.allocated_edge_n1[edgeno] = node1;
+					basic.allocated_edge_n2[edgeno] = node2;
+					edgeno++;
+					if(node1 > highest_id)
+						highest_id = node1;
+					if(node2 > highest_id)
+						highest_id = node2;
 					boost::add_edge (node1, node2, graph);   //boost graph
 				}
             }
@@ -156,6 +177,12 @@ void read_graph(char *argv[], Basic &basic, Graph& graph, int world_rank)
     }
 	local_size=boost::num_vertices (graph);
 	basic.local_scc.reserve(local_size);
+
+	//basic.n_ver = basic.allocated_vertices.size();
+	basic.n_ver = highest_id + 1;
+	basic.n_edges = edgeno;
+
+
 }
 
 void read_changes(char *argv[], Basic &basic, Graph& changes, Graph& graph, int world_rank)
@@ -282,10 +309,10 @@ void display(Basic &basic, Graph &graph, int world_rank)
 	ofstream dump_bor("dump/global_matrix.txt");
 
 	//display vertices in partition
-	for(auto itr:basic.allocated_vertices)
-	{
-		vertex_dump<<itr<<endl;
-	}
+	// for(auto itr:basic.allocated_vertices)
+	// {
+	// 	vertex_dump<<itr<<endl;
+	// }
 	vector< vector<int> >::iterator row;
 	vector<int>::iterator col;
 	//unordered_set<int>::iterator it;

@@ -15,7 +15,7 @@ run:
 	$(run) -np 3 ./main input/distributed/g2/input_test input/distributed/g2/sccmap_test input/distributed/g2/change_test 2 1 input/distributed/g2/partition 3
 
 run1:
-	$(run) -np 1 ./main input/distributed/g2/input_test input/distributed/g2/sccmap_test input/distributed/g2/change_test 5 1 input/distributed/partition_1 1	
+	$(run) -np 1 ./main input/distributed/g2/input_test input/distributed/g2/sccmap_test input/distributed/g2/change_test 5 1 input/distributed/g2/partition_1 1	
 
 sp:
 	$(run) -np 1 ./main input/distributed/inputgraph input/distributed/sccmap input/distributed/change 11 1 input/distributed/partition1 1

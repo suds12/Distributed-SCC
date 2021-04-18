@@ -12,6 +12,8 @@ Basic holds all the variables needed for SCC and the object reference is passed 
 #define c_height 3
 #define c_width 5
 #define np 3
+#define max_vertex 100
+#define max_edges 1000
 
 
 class Basic
@@ -23,8 +25,14 @@ public:
 	unordered_set<int> meta_nodes;  //Hashset of global SCC IDs. Each process maintains its own.
 	map<int, vector<int>> border_out_vertices; //Hashmap that stores the vertices a specific border vertex has outgoing edges to. Each int is paired with a vector of connecting vertices
 	map<int, vector<int>> border_in_vertices; // Hashmap that stores the vertices a specific border vertex has incoming edges from
-	vector<int> allocated_vertices; //vector of vertices at each partition. Order matters for mapping vertex to scc
-	vector<vector<int>> allocated_graph; //Edge list of partitioned graph. Each process maintains its own
+	unordered_set<int> allocated_vertices; //vector of vertices at each partition. Order matters for mapping vertex to scc
+	int* scc_map;
+	
+	int* allocated_edge_n1; //node 2 of edge
+	int* allocated_edge_n2; //node 2 of edge 
+	
+	int n_ver, n_edges;  //Number of vertices and edges
+
 	//vector<vector<int>> allocated_changes; //Edge list of changes. Each process maintains its own
 	//vector<set<int>> local_scc;
 	vector<int>local_scc;  //Vector of component id. Each index corresponds to global vertex id. Each process maintains its own. Hence we need to remove vertices indices it does not own
@@ -63,24 +71,32 @@ public:
 	// void alloc_2d_init(int rows, int cols);
 	// void resize_2d_array(int **array, int height, int width);
 
-	// Basic()
+	Basic()
+	{
+		allocated_edge_n1 = new int[max_edges];
+		allocated_edge_n2 = new int[max_edges];
+
+		//Definitely not the optimal way of doing it. Should work on improving this
+        // int nrows = height;  //num of local SCC. Set it to appropriate vale
+        // int ncols = width;  //Max size of borders of SCC
+		// int** border_matrix = new int*[nrows];
+		// int** out_matrix = new int*[nrows];
+		// for(int i = 0; i < nrows; ++i)
+		// {
+		//     border_matrix[i] = new int[ncols];
+		//     out_matrix[i] = new int[ncols];
+		// }
+
+		// memset(arr, 0, (10*20*) * (sizeof *arr));
+		//memset(border_matrix, -1, sizeof(int)*nrows*ncols);
+		//memset(out_matrix, -1, sizeof(int)*nrows*ncols);
+
+
+	}
+	// ~Basic()
 	// {
-	// 	//Definitely not the optimal way of doing it. Should work on improving this
- //        int nrows = height;  //num of local SCC. Set it to appropriate vale
- //        int ncols = width;  //Max size of borders of SCC
-	// 	// int** border_matrix = new int*[nrows];
-	// 	// int** out_matrix = new int*[nrows];
-	// 	// for(int i = 0; i < nrows; ++i)
-	// 	// {
-	// 	//     border_matrix[i] = new int[ncols];
-	// 	//     out_matrix[i] = new int[ncols];
-	// 	// }
-
-	// 	// memset(arr, 0, (10*20*) * (sizeof *arr));
-	// 	//memset(border_matrix, -1, sizeof(int)*nrows*ncols);
-	// 	//memset(out_matrix, -1, sizeof(int)*nrows*ncols);
-
-
+	// 	delete[] allocated_edge_n1;
+	// 	delete[] allocated_edge_n2;
 	// }
 
 

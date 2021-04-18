@@ -7,11 +7,12 @@
 #include <boost/graph/strong_components.hpp>
 #include <vector>
 #include "reader.hpp"
+#include "kamesh/scc_main.cpp"
 
 #define chunk_height 3
 #define chunk_width 5
 #define num_partitions 3
-#define root 0
+//#define root 0
 #define global_modifier 100
 #define mailbox_displacement 100
 
@@ -24,41 +25,49 @@ void perform_scc(char *argv[], Basic& basic, Graph& graph, int world_rank)   //S
 	
 	int p = 1;
 	int nodes=11;
+	int nvertices = basic.n_ver;
+	unsigned int nedges = (unsigned int)basic.n_edges;
 
 	//Replace this with function call for shared SCC (From Sriram). Tha input parameters would be the allocated graph and SCC mapping. 
-	size_t num_components = boost::strong_components (graph, &basic.local_scc[0]); //output to local_scc
+	
+	fn_start(nvertices, nedges, basic.allocated_edge_n1, basic.allocated_edge_n2, basic, world_rank);
+	
+	
+	//size_t num_components = boost::strong_components (graph, &basic.local_scc[0]); //output to local_scc
 
 	//Additional conversions. Don't time
-	int temp=0;
-	unordered_set<int> empty;
-	for(int i=0;i<num_components;i++)
-	{
-		basic.temp_scc.push_back(empty);
-	}
-	for(int i=0;i<boost::num_vertices (graph);i++)
-	{
-		//cout<<"**"<<basic.relevant_vertices.count(i)<<" ";
-		if(basic.partition_of_vertex[i]==world_rank)
-		{
-			basic.temp_scc[basic.local_scc[i]].insert(i);
-		}
+	// int temp=0;
+	// unordered_set<int> empty;
+	// for(int i=0;i<num_components;i++)
+	// {
+	// 	basic.temp_scc.push_back(empty);
+	// }
+	// for(int i=0;i<boost::num_vertices (graph);i++)
+	// {
+	// 	//cout<<"**"<<basic.relevant_vertices.count(i)<<" ";
+	// 	if(basic.partition_of_vertex[i]==world_rank)
+	// 	{
+	// 		basic.temp_scc[basic.local_scc[i]].insert(i);
+	// 	}
 		
-	}
-	for(int i=0;i<basic.temp_scc.size();i++)
-	{
-		if(!basic.temp_scc[i].empty())
-			basic.l_scc.push_back(basic.temp_scc[i]);
-	}
-	//-----------------
-	//Store local scc in hash table. key =vertex id ; value = local scc id
-	for(int i=0;i<boost::num_vertices (graph);i++) 
-	{
-		if(basic.partition_of_vertex[i]==world_rank)
-		{
-			basic.local_scc_map.insert({i,basic.local_scc[i]});
-			basic.meta_nodes.insert((world_rank * global_modifier) + basic.local_scc[i]);   //Store all global SCC IDs in a set for future use
-		}
-	}
+	// }
+	// for(int i=0;i<basic.temp_scc.size();i++)
+	// {
+	// 	if(!basic.temp_scc[i].empty())
+	// 		basic.l_scc.push_back(basic.temp_scc[i]);
+	// }
+	// //-----------------
+	// //Store local scc in hash table. key =vertex id ; value = local scc id
+	// for(int i=0;i<boost::num_vertices (graph);i++) 
+	// {
+	// 	if(basic.partition_of_vertex[i]==world_rank)
+	// 	{
+	// 		basic.local_scc_map.insert({i,basic.local_scc[i]});
+	// 		basic.meta_nodes.insert((world_rank * global_modifier) + basic.local_scc[i]);   //Store all global SCC IDs in a set for future use
+	// 	}
+	// }
+	//----------------------------
+
 	// if(world_rank == 2)
 	// {
 	// 	cout<<"----------";
