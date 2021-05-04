@@ -50,13 +50,32 @@ void perform_scc(char *argv[], Basic& basic, Graph& graph, int world_rank)   //S
 			basic.l_scc.push_back(basic.temp_scc[i]);
 	}
 	//-----------------
-	//Store local scc in hash table. key =vertex id ; value = local scc id
+	//Store local scc in hash table. key =vertex id ; value = local scc id. Also create borders_of_scc(described in basic.hpp)
 	for(int i=0;i<boost::num_vertices (graph);i++) 
 	{
 		if(basic.partition_of_vertex[i]==world_rank)
 		{
 			basic.local_scc_map.insert({i,basic.local_scc[i]});
 			basic.meta_nodes.insert((world_rank * global_modifier) + basic.local_scc[i]);   //Store all global SCC IDs in a set for future use
+
+			if(basic.border_in_vertices.find(i) != basic.border_in_vertices.end())
+			{
+				for(auto temp : basic.border_in_vertices.at(i))
+				{
+					basic.borders_in_of_scc[(world_rank * global_modifier) + basic.local_scc_map[i]].insert(temp);    //Inserting incoming border vertices into a hashset allocated for each global SCC.
+				}
+				
+			}
+
+			if(basic.border_out_vertices.find(i) != basic.border_out_vertices.end())  
+			{
+				for(auto temp : basic.border_out_vertices.at(i))
+				{
+					basic.borders_out_of_scc[(world_rank * global_modifier) + basic.local_scc_map[i]].insert(temp);    //Inserting outgoing border vertices into a hashset allocated for each global SCC.
+				}
+				
+			}
+
 		}
 	}
 	// if(world_rank == 2)
@@ -119,31 +138,70 @@ void bcast_meta_nodes(Basic& basic, int world_rank, int world_size)
 {
 	int index=0;
 	int* probe_meta_node;
-	int *rbuf;  
+	int *rbuf_size;  
+	int *rbuf_data; 
+	int probe_size[1];
+	int* probe_counts;
+	int* probe_displacements;
 
 	probe_meta_node = arr_resize(probe_meta_node, 0, 100);
 	for(auto temp : basic.meta_nodes)
 	{
 		probe_meta_node[index] = temp;
 		index++;
-	}
-	// if(world_rank == 1)
-	// {
-	// 	for(int i=0; i<index; i++)
-	// 	{
-	// 		cout<<"meta : "<<probe_meta_node[i]<<" ";
-	// 	}
-	// }
-	rbuf = (int *)malloc(world_size*10*sizeof(int)); 
-	MPI_Allgather( probe_meta_node, index, MPI_INT, rbuf, index, MPI_INT, MPI_COMM_WORLD);
+		probe_meta_node[index] = basic.borders_in_of_scc[temp].size();
+		index++;
+		probe_meta_node[index] = basic.borders_out_of_scc[temp].size();
+		index++;
 
-	if(world_rank == 2)
-	{
-		for(int i=0; i< 10; i++)
+		if(basic.borders_in_of_scc[temp].size() != 0)
 		{
-			cout<<rbuf[i]<<" ";
+			for(auto itr : basic.borders_in_of_scc[temp])
+			{
+				probe_meta_node[index] = itr;
+				index++;
+			}
+		}
+		
+		if(basic.borders_out_of_scc[temp].size() != 0)
+		{
+			for(auto itr : basic.borders_out_of_scc[temp])
+			{
+				probe_meta_node[index] = itr;
+				index++;
+			}
+		}
+		
+
+	}
+	rbuf_size = (int *)malloc(world_size*sizeof(int));
+	probe_size[0] = index;
+	MPI_Allgather( probe_size, 1, MPI_INT, rbuf_size, 1, MPI_INT, MPI_COMM_WORLD);   // Sending the size of each probe message to all processors. We need this to calculate displacements when using allgatherv
+
+	probe_counts = (int *)malloc(world_size*sizeof(int));
+	probe_displacements = (int *)malloc(world_size*sizeof(int));
+
+	probe_counts = rbuf_size;
+	int disp = 0;
+	for(int i=0; i<world_size; i++)
+	{
+		probe_displacements[i] = disp;
+		disp += probe_counts[i];
+	}
+	rbuf_data = (int *)malloc(disp*sizeof(int));
+	MPI_Allgatherv(probe_meta_node, index, MPI_INT, rbuf_data, probe_counts, probe_displacements, MPI_INT, MPI_COMM_WORLD);
+
+	basic.all_probe = rbuf_data;
+
+	if(world_rank == 0)
+	{
+		for(int i=0; i<disp; i++)
+		{
+			cout<<basic.all_probe[i]<<" ";
 		}
 	}
+
+
 }
 
 void send_probe(Basic& basic, int world_rank, int world_size)

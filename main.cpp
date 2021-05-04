@@ -7,6 +7,7 @@
 //#include "main_code.cpp"
 #include "update.cpp"
 #include "reader.hpp"
+//#include "kamesh/scc_main.cpp"
 
 
 using namespace std;
@@ -59,11 +60,12 @@ int main(int argc, char *argv[])
     cout<<"Performing initial SCC from rank "<<world_rank<<endl;
     perform_scc(argv,basic,graph,world_rank);
 
-    prepare_to_send(basic, world_rank);
+    //prepare_to_send(basic, world_rank);
+
 
     bcast_meta_nodes(basic, world_rank, world_size);
 
-    send_probe(basic, world_rank, world_size);
+    //send_probe(basic, world_rank, world_size);
     
 
     //----------------------

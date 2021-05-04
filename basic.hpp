@@ -32,8 +32,11 @@ public:
 	vector<unordered_set<int>>l_scc;
 	map<int,int> local_scc_map; //Hashmap of vertex ID to local SCC ID
 	unordered_set<int> target_list; //Hash set of all reciever PIDs. EAch process maintains a list PIDs that has a connection with it through border vertices.
+	map<int, unordered_set<int>>borders_in_of_scc;  //Hashmap of SCC ID to set of all incoming border vertices in that SCC 
+	map<int, unordered_set<int>>borders_out_of_scc;  //Hashmap of SCC ID to set of all outgoing border vertices in that SCC
 	int *probe_to_send; 
 	int size_of_probe;
+	int *all_probe; //array that stores all individual probes after allgatherv.
 	//unordered_set<int> relevant_vertices; //Hash set of vertices and mirror vertices. Each process maintains its own. Used for removing irrelevent vertices from local_scc
 	//vector<vector<int>>merge_detail; 
 	//unordered_map<int, int> parent_scc; //Used for creating SCC on disjoint sets using union find

@@ -320,8 +320,23 @@ void display(Basic &basic, Graph &graph, int world_rank)
 	// }
 	//----------------------------
 	
-	
+	//Display borders_out of scc
+	for(auto itr:basic.borders_out_of_scc)
+	{
+		out_dump<<itr.first<<" : ";
+		for(auto i : itr.second)
+			out_dump<<i<<" ";
+		out_dump<<endl;
+	}
 
+	//Display borders_in of scc
+	for(auto itr:basic.borders_in_of_scc)
+	{
+		inter_dump<<itr.first<<" : ";
+		for(auto i : itr.second)
+			inter_dump<<i<<" ";
+		inter_dump<<endl;
+	}
 	//Display local SCC
 	for (int i = 0; i < boost::num_vertices (graph); ++i)
 	{
