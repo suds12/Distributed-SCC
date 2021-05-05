@@ -112,6 +112,11 @@ void read_graph(char *argv[], Basic &basic, Graph& graph, int world_rank)
 				if(world_rank == basic.partition_of_vertex.at(node1) or world_rank == basic.partition_of_vertex.at(node2))
 				{
 					boost::add_edge (node1, node2, graph);  //Storing in boost ajacency list.
+					vector<int> temp;
+					temp.push_back(node1);
+					temp.push_back(node2);
+					basic.allocated_graph.push_back(temp);  //Storing in vectors for seperate use
+
 					//store border vertices and store the vertices a specific border vertex has outgoing edges to. This is stored seperately and is only used for merging. Not included while performing local SCC.
 					if(world_rank == basic.partition_of_vertex.at(node1))
 					{
@@ -149,6 +154,10 @@ void read_graph(char *argv[], Basic &basic, Graph& graph, int world_rank)
 				if(world_rank == basic.partition_of_vertex.at(node1))
 				{
 					boost::add_edge (node1, node2, graph);   //boost graph
+					vector<int> temp;
+					temp.push_back(node1);
+					temp.push_back(node2);
+					basic.allocated_graph.push_back(temp);  //Storing in vectors for seperate use
 				}
             }
             lineno++;
@@ -231,6 +240,10 @@ void read_changes(char *argv[], Basic &basic, Graph& changes, Graph& graph, int 
 				{
 					boost::add_edge (node1, node2, changes);   
 					boost::add_edge (node1, node2, graph); //Adding it also to input graph for now to recompute changes. Should remove it when the shared SCC is ready.
+					vector<int> temp;
+					temp.push_back(node1);
+					temp.push_back(node2);
+					basic.allocated_graph.push_back(temp);  //Storing in vectors for seperate use
 
 				}
             }
@@ -271,7 +284,7 @@ void read_sccmap(char *argv[], Basic &basic, int world_rank)
 void display(Basic &basic, Graph &graph, int world_rank)
 {
 	ofstream vertex_dump("dump/ver_" + std::to_string(world_rank) + ".txt");
-
+	ofstream par_dump("dump/par_" + std::to_string(world_rank) + ".txt");
 	ofstream scc_dump("dump/file_no_" + std::to_string(world_rank) + ".txt");
 	ofstream out_dump("dump/rel_" + std::to_string(world_rank) + ".txt");
 	ofstream inter_dump("dump/int_" + std::to_string(world_rank) + ".txt");
@@ -290,36 +303,7 @@ void display(Basic &basic, Graph &graph, int world_rank)
 	}
 	vector< vector<int> >::iterator row;
 	vector<int>::iterator col;
-	//unordered_set<int>::iterator it;
 
-	//Display allocated graph for specific partition
-	// if(world_rank==0)
-	// {
-	// 	for(row=basic.allocated_graph.begin(); row<basic.allocated_graph.end(); row++)
-	// 	{
-	// 		cout<<endl;
-	// 		for(col = row->begin(); col != row->end(); col++)
-	// 		{
-	// 			cout<<*col<<" ";
-	// 		}
-	// 	}
-	// }
-
-	//Display mirrors for specific partition
-	// for(auto it : basic.border_out_vertices)
-	// {
-	// 	out_dump<<it.first<<" : ";
-	// 	for(auto i : it.second)
-	// 	{
-	// 		out_dump<<i<<" ";
-	// 	}
-	// 	out_dump<<endl;
-	// }
-	// //display probe message
-	// for(int i=0; i<basic.size_of_probe; i++)
-	// {
-	// 	probe_dump<<basic.probe_to_send[i]<<" ";
-	// }
 	//----------------------------
 
 	//Display local scc map
@@ -387,8 +371,11 @@ void display(Basic &basic, Graph &graph, int world_rank)
 
 	}
 
-	
-
+	//Display partial meta edges
+	for(auto itr : basic.partial_meta_edge)
+	{
+		par_dump<<itr.first<<" "<<itr.second<<endl;
+	}
 	
 }
 

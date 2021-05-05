@@ -9,6 +9,7 @@ Basic holds all the variables needed for SCC and the object reference is passed 
 #include <utility> 
 #include <vector>
 #include <boost/graph/adjacency_list.hpp>
+#include <boost/functional/hash.hpp>
 #define c_height 3
 #define c_width 5
 #define np 3
@@ -40,8 +41,9 @@ public:
 	int displacement; //size of the entire probe message after gather
 	map<int,vector<unordered_set<int>>> meta_in_out;
 	int* meta_graph_vector; //bit vector with each index being a 1to1 combination of all metanodes and value denoting if there is an edge between. For N metanodes, the size is N^2
+	unordered_set<pair<int,int>, boost::hash<pair<int, int>> > partial_meta_edge; //Hashset of edges between metanodes within same process
 
-	
+
 	//unordered_set<int> relevant_vertices; //Hash set of vertices and mirror vertices. Each process maintains its own. Used for removing irrelevent vertices from local_scc
 	//vector<vector<int>>merge_detail; 
 	//unordered_map<int, int> parent_scc; //Used for creating SCC on disjoint sets using union find

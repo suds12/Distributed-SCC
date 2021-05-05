@@ -99,6 +99,18 @@ int* arr_resize(int* arr, int oldsize, int newsize)
 	return arr;
 }
 
+void create_partial_meta_graph(Basic& basic, int world_rank)
+{
+	pair<int,int> edge;
+	for(auto i : basic.allocated_graph)
+	{
+		edge.first = basic.local_scc[i[0]] + (world_rank * global_modifier);
+		edge.second = basic.local_scc[i[1]] + (world_rank * global_modifier);
+		basic.partial_meta_edge.insert(edge);
+	}
+}
+
+
 
 void prepare_to_send(Basic& basic, int world_rank)
 {

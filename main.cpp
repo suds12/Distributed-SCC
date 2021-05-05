@@ -62,6 +62,7 @@ int main(int argc, char *argv[])
 
     //prepare_to_send(basic, world_rank);
 
+    create_partial_meta_graph(basic, world_rank);
 
     bcast_meta_nodes(basic, world_rank, world_size);
 
