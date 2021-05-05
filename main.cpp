@@ -69,6 +69,8 @@ int main(int argc, char *argv[])
 
     create_meta_graph_vector(basic, world_rank, world_size);
 
+    reduce_meta_graph(basic, world_rank, world_size);
+
     //send_probe(basic, world_rank, world_size);
     
 

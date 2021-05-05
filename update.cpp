@@ -274,15 +274,25 @@ void create_meta_graph_vector(Basic& basic, int world_rank, int world_size)
 		}
 	}
 
+	
+}
+
+void reduce_meta_graph(Basic& basic, int world_rank, int world_size)
+{
+	int* rbuf;
+	int buf_size = basic.meta_in_out.size() * basic.meta_in_out.size();
+	rbuf = (int *)malloc(basic.meta_in_out.size() * basic.meta_in_out.size() * sizeof(int));
+
+	MPI_Allreduce(basic.meta_graph_vector, rbuf, buf_size, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
+
 	if(world_rank == 2)
 	{
 		cout<<endl;
-		for(int i = 0; i<index; i++)
+		for(int i = 0; i<buf_size; i++)
 		{
-			cout<<basic.meta_graph_vector[i]<<" ";
+			cout<<rbuf[i]<<" ";
 		}
 	}
-	
 }
 
 void send_probe(Basic& basic, int world_rank, int world_size)
