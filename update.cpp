@@ -192,6 +192,7 @@ void bcast_meta_nodes(Basic& basic, int world_rank, int world_size)
 	MPI_Allgatherv(probe_meta_node, index, MPI_INT, rbuf_data, probe_counts, probe_displacements, MPI_INT, MPI_COMM_WORLD);
 
 	basic.all_probe = rbuf_data;
+	basic.displacement = disp;
 
 	if(world_rank == 0)
 	{
@@ -201,7 +202,62 @@ void bcast_meta_nodes(Basic& basic, int world_rank, int world_size)
 		}
 	}
 
+}
 
+void unpack_bcast(Basic& basic, int world_rank, int world_size)
+{
+	int index = 0;
+	int first;
+	int iptr = 0, jptr=0;
+	int insize = 0; int outsize=0;
+	int instart, outstart;
+
+	
+
+	//This can be done parallely by using 2 seperate pointers for traversal
+	while(index < basic.displacement)
+	{
+		unordered_set<int> invertices;
+		unordered_set<int> outvertices;
+		vector<unordered_set<int>> second;
+
+		first = basic.all_probe[index];   //Storing meta node as key 
+		index++;
+		insize = basic.all_probe[index];
+		index++;
+		outsize = basic.all_probe[index];
+		index++;
+
+		instart = index;
+		while(index < (instart + insize))   // Traversing and storing invertices as first column of value vector
+		{
+			if(basic.partition_of_vertex[basic.all_probe[index]] == world_rank) //Check if the vertex belongs to this partition
+			{
+				invertices.insert({basic.local_scc_map[basic.all_probe[index]] + (world_rank * global_modifier) });
+			}
+			index++;
+		}
+		second.push_back(invertices);
+
+		outstart = index;
+		while(index < (outstart + outsize))	//Traversing and storing outvertices as second column of value vector
+		{
+			if(basic.partition_of_vertex[basic.all_probe[index]] == world_rank) //Check if the vertex belongs to this partition
+			{
+				outvertices.insert({basic.local_scc_map[basic.all_probe[index]] + (world_rank * global_modifier) });
+			}
+			index++;
+		}
+		second.push_back(outvertices);		
+		if(world_rank == 0)
+		{
+			cout<<"ov ";
+			for(auto iptr : outvertices)
+			cout<<iptr<<" ";
+		}
+
+		basic.meta_in_out.insert({first,second});   //Push key and value vector into hashmap at end of each iteration
+	}
 }
 
 void send_probe(Basic& basic, int world_rank, int world_size)

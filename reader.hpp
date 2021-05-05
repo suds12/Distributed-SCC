@@ -278,8 +278,10 @@ void display(Basic &basic, Graph &graph, int world_rank)
 	ofstream probe_dump("dump/probe_" + std::to_string(world_rank) + ".txt");
 	ofstream l_scc_dump("dump/l_scc_" + std::to_string(world_rank) + ".txt");
 	ofstream updated_result("dump/result" + std::to_string(world_rank) + ".txt");
-	ofstream map_dump("dump/b_out_v" + std::to_string(world_rank) + ".txt");
-	ofstream dump_bor("dump/global_matrix.txt");
+	//ofstream map_dump("dump/b_out_v" + std::to_string(world_rank) + ".txt");
+	ofstream dump_bor("dump/scc_hash" + std::to_string(world_rank) + ".txt");
+	ofstream b_in_dump("dump/b_in_v" + std::to_string(world_rank) + ".txt");
+	ofstream b_out_dump("dump/b_out_v" + std::to_string(world_rank) + ".txt");
 
 	//display vertices in partition
 	for(auto itr:basic.allocated_vertices)
@@ -319,7 +321,12 @@ void display(Basic &basic, Graph &graph, int world_rank)
 	// 	probe_dump<<basic.probe_to_send[i]<<" ";
 	// }
 	//----------------------------
-	
+
+	//Display local scc map
+	for(auto itr : basic.local_scc_map)
+	{
+		l_scc_dump<<itr.first<<" : "<<itr.second<<endl;
+	}
 	//Display borders_out of scc
 	for(auto itr:basic.borders_out_of_scc)
 	{
@@ -343,67 +350,43 @@ void display(Basic &basic, Graph &graph, int world_rank)
 		if(basic.partition_of_vertex[i]==world_rank)
     		scc_dump << basic.local_scc[i] << " ";
 	}
-	// //Display local merge details
-	// for(int it=0;it<basic.l_scc.size();it++)
-	// {
-	// 	l_scc_dump<<it<<" : ";
-	// 	for(auto itr=basic.l_scc[it].begin(); itr!=basic.l_scc[it].end();itr++)
-	// 		l_scc_dump<<*itr<<" ";
-	// 	l_scc_dump<<endl;
-	// }
-	// //Display border matrix
-	// for(int i =0; i<basic.l_scc.size();i++)
-	// {
-	// 	int j=0;
-	// 	meta_dump<<endl;
-	// 	while(basic.border_matrix[i][j] != -1)
-	// 	{
-	// 		meta_dump<<basic.border_matrix[i][j]<<" ";
-	// 		j++;
-	// 	}
-	// }
+	//display border_in
+	for(auto itr : basic.border_in_vertices)
+	{
+		b_in_dump<<itr.first<<" : ";
+		for(auto i : itr.second)
+		{
+			b_in_dump<<i<<" ";
+		}
+		b_in_dump<<endl;
+	}
+	//display border_out
+	for(auto itr : basic.border_out_vertices)
+	{
+		b_out_dump<<itr.first<<" : ";
+		for(auto i : itr.second)
+		{
+			b_out_dump<<i<<" ";
+		}
+		b_out_dump<<endl;
+	}
+	//Display meta_in_out
+	for(auto itr : basic.meta_in_out)
+	{
+		dump_bor<<itr.first<<" : ";
+		for(auto i : itr.second[0])
+		{
+			dump_bor<<i<<" ";
+		}
+		dump_bor<<" :: ";
+		for(auto j : itr.second[1])
+		{
+			dump_bor<<j<<" ";
+		}
+		dump_bor<<endl;
 
-	// //Display out matrix
-	// for(int i =0; i<basic.l_scc.size();i++)
-	// {
-	// 	int j=0;
-		
-	// 	while(basic.out_matrix[i][j] != -1)
-	// 	{
-	// 		out_dump<<basic.out_matrix[i][j]<<" ";
-	// 		j++;
-	// 	}
-	// 	out_dump<<endl;
-	// }
-	// //display global border matrix
-	// if(world_rank == root)
-	// {
-	// 	for(int i=0;i<chunk_height * num_partitions;i++)
-	// 	{
-	// 		int j=0;
-	// 		while(basic.global_border_matrix[i][j] != -1)
-	// 		{
-	// 			dump_bor<<basic.global_border_matrix[i][j]<<" ";
-	// 			j++;
-	// 		}
-	// 		dump_bor<<endl;
-	// 	}
-		
-	// }
-	
-	//Display relevant vertices
-	// for(auto it=basic.relevant_vertices.begin(); it!=basic.relevant_vertices.end(); it++)
-	// {
-	// 	rel_dump<<*it<<" ";
-	// }
-	//Display intersection
-	// for(auto it=basic.intersection_set.begin(); it!=basic.intersection_set.end(); it++)
-	// {
-	// 	inter_dump<<*it<<" ";
-	// }
-    //Display border_in_vertices
-	
-	//Display border matrix
+	}
+
 	
 
 	

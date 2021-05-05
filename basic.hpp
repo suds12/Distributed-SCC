@@ -37,6 +37,8 @@ public:
 	int *probe_to_send; 
 	int size_of_probe;
 	int *all_probe; //array that stores all individual probes after allgatherv.
+	int displacement; //size of the entire probe message after gather
+	map<int,vector<unordered_set<int>>> meta_in_out;
 	//unordered_set<int> relevant_vertices; //Hash set of vertices and mirror vertices. Each process maintains its own. Used for removing irrelevent vertices from local_scc
 	//vector<vector<int>>merge_detail; 
 	//unordered_map<int, int> parent_scc; //Used for creating SCC on disjoint sets using union find
