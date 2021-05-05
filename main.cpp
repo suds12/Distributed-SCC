@@ -67,6 +67,8 @@ int main(int argc, char *argv[])
 
     unpack_bcast(basic, world_rank, world_size);
 
+    create_meta_graph_vector(basic, world_rank, world_size);
+
     //send_probe(basic, world_rank, world_size);
     
 

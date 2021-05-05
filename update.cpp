@@ -249,15 +249,40 @@ void unpack_bcast(Basic& basic, int world_rank, int world_size)
 			index++;
 		}
 		second.push_back(outvertices);		
-		if(world_rank == 0)
-		{
-			cout<<"ov ";
-			for(auto iptr : outvertices)
-			cout<<iptr<<" ";
-		}
-
 		basic.meta_in_out.insert({first,second});   //Push key and value vector into hashmap at end of each iteration
 	}
+}
+
+void create_meta_graph_vector(Basic& basic, int world_rank, int world_size)
+{
+	int index = 0;
+	basic.meta_graph_vector = (int *)malloc(basic.meta_in_out.size() * basic.meta_in_out.size() * sizeof(int));
+
+	for(auto i : basic.meta_in_out)
+	{
+		for(auto j : basic.meta_in_out)
+		{
+			if(i.second[0].find(j.first) != i.second[0].end())
+			{
+				basic.meta_graph_vector[index] = 1;
+			}
+			else
+			{
+				basic.meta_graph_vector[index] = 0;
+			}
+			index++;
+		}
+	}
+
+	if(world_rank == 2)
+	{
+		cout<<endl;
+		for(int i = 0; i<index; i++)
+		{
+			cout<<basic.meta_graph_vector[i]<<" ";
+		}
+	}
+	
 }
 
 void send_probe(Basic& basic, int world_rank, int world_size)

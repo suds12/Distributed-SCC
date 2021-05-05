@@ -39,6 +39,9 @@ public:
 	int *all_probe; //array that stores all individual probes after allgatherv.
 	int displacement; //size of the entire probe message after gather
 	map<int,vector<unordered_set<int>>> meta_in_out;
+	int* meta_graph_vector; //bit vector with each index being a 1to1 combination of all metanodes and value denoting if there is an edge between. For N metanodes, the size is N^2
+
+	
 	//unordered_set<int> relevant_vertices; //Hash set of vertices and mirror vertices. Each process maintains its own. Used for removing irrelevent vertices from local_scc
 	//vector<vector<int>>merge_detail; 
 	//unordered_map<int, int> parent_scc; //Used for creating SCC on disjoint sets using union find
