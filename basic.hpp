@@ -42,6 +42,11 @@ public:
 	map<int,vector<unordered_set<int>>> meta_in_out;
 	int* meta_graph_vector; //bit vector with each index being a 1to1 combination of all metanodes and value denoting if there is an edge between. For N metanodes, the size is N^2
 	unordered_set<pair<int,int>, boost::hash<pair<int, int>> > partial_meta_edge; //Hashset of edges between metanodes within same process
+	int* partial_ME_vector; //stores meta edges within processes. 
+	int partial_ME_size; 
+	int *all_internal; //array that stores all individual internal meta edges after allgatherv
+	int *full_ME_vector; //Stores all meta edges after reduction
+	map<int, pair<int,int>> edge_index; //hasmap that matches index from ME_vector to pair of meta nodes(meta edge)
 
 
 	//unordered_set<int> relevant_vertices; //Hash set of vertices and mirror vertices. Each process maintains its own. Used for removing irrelevent vertices from local_scc

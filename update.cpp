@@ -101,13 +101,28 @@ int* arr_resize(int* arr, int oldsize, int newsize)
 
 void create_partial_meta_graph(Basic& basic, int world_rank)
 {
+	//The aim here is to create meta edges without redundant edges between meta nodes and store them in an array format for communication. 
+	//This could either be done by putting the edges(pair of meta nodes) in a hashset and them store them in an array by traversing the hashet or directly store them in an array by checking redundancies with IF statement. 
+	//I don't know which is faster so need to analyse further. Going with the former for now.
 	pair<int,int> edge;
+	int index = 0;
+	basic.partial_ME_vector = (int *)malloc(basic.partial_meta_edge.size() * 2 * sizeof(int));
 	for(auto i : basic.allocated_graph)
 	{
 		edge.first = basic.local_scc[i[0]] + (world_rank * global_modifier);
 		edge.second = basic.local_scc[i[1]] + (world_rank * global_modifier);
 		basic.partial_meta_edge.insert(edge);
 	}
+	for(auto j : basic.partial_meta_edge)
+	{
+		basic.partial_ME_vector[index] = j.first;
+		index++;
+		basic.partial_ME_vector[index] = j.second;
+		index++;
+	}
+	basic.partial_ME_size = index;
+
+	
 }
 
 
@@ -150,11 +165,14 @@ void bcast_meta_nodes(Basic& basic, int world_rank, int world_size)
 {
 	int index=0;
 	int* probe_meta_node;
-	int *rbuf_size;  
-	int *rbuf_data; 
-	int probe_size[1];
+	int* rbuf_size;  
+	int* rbuf_data; 
+	int* rbuf_internal;
+	int probe_size[2];
 	int* probe_counts;
+	int* internal_counts;
 	int* probe_displacements;
+	int* internal_displacements;
 
 	probe_meta_node = arr_resize(probe_meta_node, 0, 100);
 	for(auto temp : basic.meta_nodes)
@@ -186,31 +204,54 @@ void bcast_meta_nodes(Basic& basic, int world_rank, int world_size)
 		
 
 	}
-	rbuf_size = (int *)malloc(world_size*sizeof(int));
+	rbuf_size = (int *)malloc(world_size * 2 * sizeof(int));  //Buffer to hold sizes of both external and internal edges
 	probe_size[0] = index;
-	MPI_Allgather( probe_size, 1, MPI_INT, rbuf_size, 1, MPI_INT, MPI_COMM_WORLD);   // Sending the size of each probe message to all processors. We need this to calculate displacements when using allgatherv
+	probe_size[1] = basic.partial_ME_size;
+	
+	MPI_Allgather( probe_size, 2, MPI_INT, rbuf_size, 2, MPI_INT, MPI_COMM_WORLD);   // Sending the size of each probe message to all processors. We need this to calculate displacements when using allgatherv
 
-	probe_counts = (int *)malloc(world_size*sizeof(int));
+	
+	probe_counts = (int *)malloc(world_size * sizeof(int));
+	internal_counts = (int *)malloc(world_size * sizeof(int));
 	probe_displacements = (int *)malloc(world_size*sizeof(int));
+	internal_displacements = (int *)malloc(world_size*sizeof(int));
 
-	probe_counts = rbuf_size;
 	int disp = 0;
-	for(int i=0; i<world_size; i++)
+	int i_disp = 0;
+	int j=0;
+
+	
+	
+	for(int i=0; i<world_size*2; i++)
 	{
-		probe_displacements[i] = disp;
-		disp += probe_counts[i];
+		probe_displacements[j] = disp;
+		disp += rbuf_size[i];
+		probe_counts[j] = rbuf_size[i];
+		i++;
+		internal_displacements[j] = i_disp;
+		i_disp += rbuf_size[i];
+		internal_counts[j] = rbuf_size[i];
+		j++;
 	}
+
+	
 	rbuf_data = (int *)malloc(disp*sizeof(int));
 	MPI_Allgatherv(probe_meta_node, index, MPI_INT, rbuf_data, probe_counts, probe_displacements, MPI_INT, MPI_COMM_WORLD);
 
 	basic.all_probe = rbuf_data;
 	basic.displacement = disp;
 
+	
+
+	rbuf_internal = (int *)malloc(i_disp*sizeof(int));
+	MPI_Allgatherv(basic.partial_ME_vector, basic.partial_ME_size, MPI_INT, rbuf_internal, internal_counts, internal_displacements, MPI_INT, MPI_COMM_WORLD);
+	basic.all_internal = rbuf_internal;
+
 	if(world_rank == 0)
 	{
-		for(int i=0; i<disp; i++)
+		for(int i=0; i<i_disp; i++)
 		{
-			cout<<basic.all_probe[i]<<" ";
+			cout<<basic.all_internal[i]<<" ";
 		}
 	}
 
@@ -265,6 +306,7 @@ void unpack_bcast(Basic& basic, int world_rank, int world_size)
 	}
 }
 
+
 void create_meta_graph_vector(Basic& basic, int world_rank, int world_size)
 {
 	int index = 0;
@@ -296,6 +338,7 @@ void reduce_meta_graph(Basic& basic, int world_rank, int world_size)
 	rbuf = (int *)malloc(basic.meta_in_out.size() * basic.meta_in_out.size() * sizeof(int));
 
 	MPI_Allreduce(basic.meta_graph_vector, rbuf, buf_size, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
+	basic.full_ME_vector = rbuf;
 
 	if(world_rank == 2)
 	{
@@ -306,6 +349,7 @@ void reduce_meta_graph(Basic& basic, int world_rank, int world_size)
 		}
 	}
 }
+
 
 void send_probe(Basic& basic, int world_rank, int world_size)
 {
