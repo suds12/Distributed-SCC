@@ -21,7 +21,9 @@
 
 void perform_scc(char *argv[], Basic& basic, Graph& graph, int world_rank)   //Shared memory scc
 {
-	
+	/*
+	Here we perform SCCs locall at each process and some extra bookeeping 
+	*/
 	int p = 1;
 	int nodes=11;
 
@@ -163,6 +165,16 @@ void prepare_to_send(Basic& basic, int world_rank)
 
 void bcast_meta_nodes(Basic& basic, int world_rank, int world_size)
 {
+	/*
+	Here everyone broadcasts their meta nodes and outgoing interprocess edges using allgatherv. 
+	Individual messages(probes) are of the form:
+	index[0] = meta node Id
+	index[1] = number of incoming edges to meta node
+	index[2] = number of outgoing edges from meta node
+	index[3] to index[n] = vertex IDs of incoming edges followed by outgiong edges where n = index[1] + index[2]
+	This repeats itself for all metanodes bringing total size of message to M*(n+3) where M = number of meta nodes
+	*/
+
 	int index=0;
 	int* probe_meta_node;
 	int* rbuf_size;  
@@ -264,6 +276,9 @@ void bcast_meta_nodes(Basic& basic, int world_rank, int world_size)
 
 void unpack_bcast(Basic& basic, int world_rank, int world_size)
 {
+	/*
+	Here we unpack the broadcast message and store them in respective hash tables.
+	*/
 	int index = 0;
 	int first;
 	int iptr = 0, jptr=0;
@@ -348,6 +363,7 @@ void create_meta_graph_vector(Basic& basic, int world_rank, int world_size)
 
 void reduce_meta_graph(Basic& basic, int world_rank, int world_size)
 {
+	//Here we reduce the meta graph bit vector to fill in the missing meta edges from every process. At the end of all_reduce, every process maintains the same copy of of the vector.
 	int* rbuf;
 	int buf_size = basic.meta_in_out.size() * basic.meta_in_out.size();
 	rbuf = (int *)malloc(basic.meta_in_out.size() * basic.meta_in_out.size() * sizeof(int));
