@@ -45,8 +45,11 @@ public:
 	int* partial_ME_vector; //stores meta edges within processes. 
 	int partial_ME_size; 
 	int *all_internal; //array that stores all individual internal meta edges after allgatherv
+	int internal_size; //size of all internal
 	int *full_ME_vector; //Stores all meta edges after reduction
+	int full_ME_vector_size;
 	map<int, pair<int,int>> edge_index; //hasmap that matches index from ME_vector to pair of meta nodes(meta edge)
+	vector<int>meta_scc; //scc of full meta graph
 
 
 	//unordered_set<int> relevant_vertices; //Hash set of vertices and mirror vertices. Each process maintains its own. Used for removing irrelevent vertices from local_scc

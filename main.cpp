@@ -66,11 +66,15 @@ int main(int argc, char *argv[])
 
     bcast_meta_nodes(basic, world_rank, world_size);
 
-    // unpack_bcast(basic, world_rank, world_size);
+    unpack_bcast(basic, world_rank, world_size);
 
-    // create_meta_graph_vector(basic, world_rank, world_size);
+    create_meta_graph_vector(basic, world_rank, world_size);
 
-    // reduce_meta_graph(basic, world_rank, world_size);
+    reduce_meta_graph(basic, world_rank, world_size);
+
+    create_full_meta_graph(basic, meta_graph, world_rank, world_size);
+
+    reperform_scc(basic, meta_graph, world_rank, world_size);
 
     //send_probe(basic, world_rank, world_size);
     

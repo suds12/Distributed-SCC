@@ -246,6 +246,7 @@ void bcast_meta_nodes(Basic& basic, int world_rank, int world_size)
 	rbuf_internal = (int *)malloc(i_disp*sizeof(int));
 	MPI_Allgatherv(basic.partial_ME_vector, basic.partial_ME_size, MPI_INT, rbuf_internal, internal_counts, internal_displacements, MPI_INT, MPI_COMM_WORLD);
 	basic.all_internal = rbuf_internal;
+	basic.internal_size = i_disp;
 
 	if(world_rank == 0)
 	{
@@ -310,19 +311,26 @@ void unpack_bcast(Basic& basic, int world_rank, int world_size)
 void create_meta_graph_vector(Basic& basic, int world_rank, int world_size)
 {
 	int index = 0;
+	pair<int,int> temp;
 	basic.meta_graph_vector = (int *)malloc(basic.meta_in_out.size() * basic.meta_in_out.size() * sizeof(int));
 
 	for(auto i : basic.meta_in_out)
 	{
 		for(auto j : basic.meta_in_out)
 		{
-			if(i.second[0].find(j.first) != i.second[0].end())
+			if(i.second[1].find(j.first) != i.second[1].end())
 			{
 				basic.meta_graph_vector[index] = 1;
+				temp.first = i.first;
+				temp.second = j.first;
+				basic.edge_index.insert({index,temp});
 			}
 			else
 			{
 				basic.meta_graph_vector[index] = 0;
+				temp.first = i.first;
+				temp.second = j.first;
+				basic.edge_index.insert({index,temp});
 			}
 			index++;
 		}
@@ -339,17 +347,62 @@ void reduce_meta_graph(Basic& basic, int world_rank, int world_size)
 
 	MPI_Allreduce(basic.meta_graph_vector, rbuf, buf_size, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
 	basic.full_ME_vector = rbuf;
+	basic.full_ME_vector_size = buf_size;
 
-	if(world_rank == 2)
+	// if(world_rank == 2)
+	// {
+	// 	cout<<endl;
+	// 	for(int i = 0; i<buf_size; i++)
+	// 	{
+	// 		cout<<rbuf[i]<<" ";
+	// 	}
+	// }
+	// cout<<endl;
+}
+
+void create_full_meta_graph(Basic& basic, MetaGraph& meta_graph, int world_rank, int world_size)
+{
+	//Reading edges into a boost graph. This should be replaced when the shared scc code is ready.
+	for(int i=0;i<basic.full_ME_vector_size;i++)
 	{
-		cout<<endl;
-		for(int i = 0; i<buf_size; i++)
+		if(basic.full_ME_vector[i] == 1)
 		{
-			cout<<rbuf[i]<<" ";
+			boost::add_edge (basic.edge_index[i].first, basic.edge_index[i].second, meta_graph);
 		}
+	}
+	int itr = 0;
+	int node1, node2;
+	while(itr<basic.internal_size)
+	{
+		node1 = basic.all_internal[itr];
+		itr++;
+		node2 = basic.all_internal[itr];
+		itr++;
+
+		boost::add_edge (node1, node2, meta_graph);
+
 	}
 }
 
+void reperform_scc(Basic& basic, MetaGraph& meta_graph, int world_rank, int world_size)
+{
+	int graph_size = boost::num_vertices (meta_graph);
+	basic.meta_scc.reserve(graph_size);
+	size_t num_components = boost::strong_components (meta_graph, &basic.meta_scc[0]);
+
+	if(world_rank ==0)
+	{
+		cout<<endl;
+		for(int i=0;i<graph_size;i++)
+		{
+			if(basic.meta_in_out.find(i) != basic.meta_in_out.end())
+			{
+				cout<<i<<" : "<<basic.meta_scc[i]<<endl;
+			}
+		}
+	}
+
+}
 
 void send_probe(Basic& basic, int world_rank, int world_size)
 {
