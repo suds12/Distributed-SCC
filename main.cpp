@@ -54,26 +54,33 @@ int main(int argc, char *argv[])
     cout<<"reading changes from rank "<<world_rank<<endl;
     read_changes(argv,basic,changes,graph,world_rank);
 
-    cout<<"reading sccmap from rank "<<world_rank<<endl;
-    read_sccmap(argv,basic,world_rank);
+    // cout<<"reading sccmap from rank "<<world_rank<<endl;
+    // read_sccmap(argv,basic,world_rank);
 
     cout<<"Performing initial SCC from rank "<<world_rank<<endl;
     perform_scc(argv,basic,graph,world_rank);
 
-    //prepare_to_send(basic, world_rank);
-
+    // //prepare_to_send(basic, world_rank);
+    
+    cout<<"Creating partial meta graph from rank "<<world_rank<<endl;
     create_partial_meta_graph(basic, world_rank);
 
+    cout<<"Broadcasting meta nodes from rank "<<world_rank<<endl;
     bcast_meta_nodes(basic, world_rank, world_size);
-
+    
+    cout<<"unpacking bcast from rank "<<world_rank<<endl;
     unpack_bcast(basic, world_rank, world_size);
 
+    cout<<"Creating meta graph vector from rank "<<world_rank<<endl;
     create_meta_graph_vector(basic, world_rank, world_size);
 
+    cout<<"Reducing meta graph vector from rank "<<world_rank<<endl;
     reduce_meta_graph(basic, world_rank, world_size);
 
+    cout<<"Creating full meta graph vector from rank "<<world_rank<<endl;
     create_full_meta_graph(basic, meta_graph, world_rank, world_size);
 
+    cout<<"Reperforming SCC from rank "<<world_rank<<endl;
     reperform_scc(basic, meta_graph, world_rank, world_size);
 
     //send_probe(basic, world_rank, world_size);
@@ -116,8 +123,8 @@ int main(int argc, char *argv[])
     // }
     //scatter_global(basic,meta_graph,world_rank);
 
+    
     display(basic,graph,world_rank);
-   
 
   	MPI_Finalize();
 	return 0;

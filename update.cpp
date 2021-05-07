@@ -91,8 +91,7 @@ void perform_scc(char *argv[], Basic& basic, Graph& graph, int world_rank)   //S
 int* arr_resize(int* arr, int oldsize, int newsize)
 {
 	int *temp_arr = new int[newsize];
-	for(int i=0; i<oldsize; i++)
-		temp_arr[i] = arr[i];
+	memcpy( temp_arr, arr, oldsize * sizeof(int) );
 	arr=temp_arr;
 	delete[] temp_arr;
 
@@ -106,13 +105,14 @@ void create_partial_meta_graph(Basic& basic, int world_rank)
 	//I don't know which is faster so need to analyse further. Going with the former for now.
 	pair<int,int> edge;
 	int index = 0;
-	basic.partial_ME_vector = (int *)malloc(basic.partial_meta_edge.size() * 2 * sizeof(int));
 	for(auto i : basic.allocated_graph)
 	{
 		edge.first = basic.local_scc[i[0]] + (world_rank * global_modifier);
 		edge.second = basic.local_scc[i[1]] + (world_rank * global_modifier);
 		basic.partial_meta_edge.insert(edge);
 	}
+
+	basic.partial_ME_vector = (int *)malloc(basic.partial_meta_edge.size() * 2 * sizeof(int));
 	for(auto j : basic.partial_meta_edge)
 	{
 		basic.partial_ME_vector[index] = j.first;
@@ -174,7 +174,10 @@ void bcast_meta_nodes(Basic& basic, int world_rank, int world_size)
 	int* probe_displacements;
 	int* internal_displacements;
 
-	probe_meta_node = arr_resize(probe_meta_node, 0, 100);
+	//probe_meta_node = arr_resize(probe_meta_node, 0, 100);
+	probe_meta_node = (int *)malloc(100000 * sizeof(int));
+
+	
 	for(auto temp : basic.meta_nodes)
 	{
 		probe_meta_node[index] = temp;
@@ -204,6 +207,7 @@ void bcast_meta_nodes(Basic& basic, int world_rank, int world_size)
 		
 
 	}
+
 	rbuf_size = (int *)malloc(world_size * 2 * sizeof(int));  //Buffer to hold sizes of both external and internal edges
 	probe_size[0] = index;
 	probe_size[1] = basic.partial_ME_size;
@@ -248,13 +252,13 @@ void bcast_meta_nodes(Basic& basic, int world_rank, int world_size)
 	basic.all_internal = rbuf_internal;
 	basic.internal_size = i_disp;
 
-	if(world_rank == 0)
-	{
-		for(int i=0; i<i_disp; i++)
-		{
-			cout<<basic.all_internal[i]<<" ";
-		}
-	}
+	// if(world_rank == 0)
+	// {
+	// 	for(int i=0; i<i_disp; i++)
+	// 	{
+	// 		cout<<basic.all_internal[i]<<" ";
+	// 	}
+	// }
 
 }
 
@@ -310,6 +314,9 @@ void unpack_bcast(Basic& basic, int world_rank, int world_size)
 
 void create_meta_graph_vector(Basic& basic, int world_rank, int world_size)
 {
+	//Unfortunately this is a pretty expensive function. Need to improve this. Can be parallelized
+	//Here we create bit vector where the indices are every 1to1 combination of all meta nodes and values being 0 or 1 depending on the presence of an edge between them.
+	//The array is created by traversing hashtables so it is N^2 for N meta nodes
 	int index = 0;
 	pair<int,int> temp;
 	basic.meta_graph_vector = (int *)malloc(basic.meta_in_out.size() * basic.meta_in_out.size() * sizeof(int));
@@ -390,17 +397,17 @@ void reperform_scc(Basic& basic, MetaGraph& meta_graph, int world_rank, int worl
 	basic.meta_scc.reserve(graph_size);
 	size_t num_components = boost::strong_components (meta_graph, &basic.meta_scc[0]);
 
-	if(world_rank ==0)
-	{
-		cout<<endl;
-		for(int i=0;i<graph_size;i++)
-		{
-			if(basic.meta_in_out.find(i) != basic.meta_in_out.end())
-			{
-				cout<<i<<" : "<<basic.meta_scc[i]<<endl;
-			}
-		}
-	}
+	// if(world_rank ==0)
+	// {
+	// 	cout<<endl;
+	// 	for(int i=0;i<graph_size;i++)
+	// 	{
+	// 		if(basic.meta_in_out.find(i) != basic.meta_in_out.end())
+	// 		{
+	// 			cout<<i<<" : "<<basic.meta_scc[i]<<endl;
+	// 		}
+	// 	}
+	// }
 
 }
 

@@ -100,9 +100,9 @@ void read_graph(char *argv[], Basic &basic, Graph& graph, int world_rank)
             }
             buffer[char_count - 1 ] = '\0';
             char_count = 0;
-            token = strtok(buffer, "\t");
+            token = strtok(buffer, " ");
             node1=atoi(token);
-            token = strtok(NULL, "\t");
+            token = strtok(NULL, " ");
             node2=atoi(token);
 
             //logic for allocating edges based on partition
@@ -165,6 +165,7 @@ void read_graph(char *argv[], Basic &basic, Graph& graph, int world_rank)
     }
 	local_size=boost::num_vertices (graph);
 	basic.local_scc.reserve(local_size);
+
 }
 
 void read_changes(char *argv[], Basic &basic, Graph& changes, Graph& graph, int world_rank)
@@ -311,71 +312,71 @@ void display(Basic &basic, Graph &graph, int world_rank)
 	{
 		l_scc_dump<<itr.first<<" : "<<itr.second<<endl;
 	}
-	//Display borders_out of scc
-	for(auto itr:basic.borders_out_of_scc)
-	{
-		out_dump<<itr.first<<" : ";
-		for(auto i : itr.second)
-			out_dump<<i<<" ";
-		out_dump<<endl;
-	}
+	// //Display borders_out of scc
+	// for(auto itr:basic.borders_out_of_scc)
+	// {
+	// 	out_dump<<itr.first<<" : ";
+	// 	for(auto i : itr.second)
+	// 		out_dump<<i<<" ";
+	// 	out_dump<<endl;
+	// }
 
-	//Display borders_in of scc
-	for(auto itr:basic.borders_in_of_scc)
-	{
-		inter_dump<<itr.first<<" : ";
-		for(auto i : itr.second)
-			inter_dump<<i<<" ";
-		inter_dump<<endl;
-	}
-	//Display local SCC
-	for (int i = 0; i < boost::num_vertices (graph); ++i)
-	{
-		if(basic.partition_of_vertex[i]==world_rank)
-    		scc_dump << basic.local_scc[i] << " ";
-	}
-	//display border_in
-	for(auto itr : basic.border_in_vertices)
-	{
-		b_in_dump<<itr.first<<" : ";
-		for(auto i : itr.second)
-		{
-			b_in_dump<<i<<" ";
-		}
-		b_in_dump<<endl;
-	}
-	//display border_out
-	for(auto itr : basic.border_out_vertices)
-	{
-		b_out_dump<<itr.first<<" : ";
-		for(auto i : itr.second)
-		{
-			b_out_dump<<i<<" ";
-		}
-		b_out_dump<<endl;
-	}
-	//Display meta_in_out
-	for(auto itr : basic.meta_in_out)
-	{
-		dump_bor<<itr.first<<" : ";
-		for(auto i : itr.second[0])
-		{
-			dump_bor<<i<<" ";
-		}
-		dump_bor<<" :: ";
-		for(auto j : itr.second[1])
-		{
-			dump_bor<<j<<" ";
-		}
-		dump_bor<<endl;
+	// //Display borders_in of scc
+	// for(auto itr:basic.borders_in_of_scc)
+	// {
+	// 	inter_dump<<itr.first<<" : ";
+	// 	for(auto i : itr.second)
+	// 		inter_dump<<i<<" ";
+	// 	inter_dump<<endl;
+	// }
+	// //Display local SCC
+	// for (int i = 0; i < boost::num_vertices (graph); ++i)
+	// {
+	// 	if(basic.partition_of_vertex[i]==world_rank)
+ //    		scc_dump << basic.local_scc[i] << " ";
+	// }
+	// //display border_in
+	// for(auto itr : basic.border_in_vertices)
+	// {
+	// 	b_in_dump<<itr.first<<" : ";
+	// 	for(auto i : itr.second)
+	// 	{
+	// 		b_in_dump<<i<<" ";
+	// 	}
+	// 	b_in_dump<<endl;
+	// }
+	// //display border_out
+	// for(auto itr : basic.border_out_vertices)
+	// {
+	// 	b_out_dump<<itr.first<<" : ";
+	// 	for(auto i : itr.second)
+	// 	{
+	// 		b_out_dump<<i<<" ";
+	// 	}
+	// 	b_out_dump<<endl;
+	// }
+	// //Display meta_in_out
+	// for(auto itr : basic.meta_in_out)
+	// {
+	// 	dump_bor<<itr.first<<" : ";
+	// 	for(auto i : itr.second[0])
+	// 	{
+	// 		dump_bor<<i<<" ";
+	// 	}
+	// 	dump_bor<<" :: ";
+	// 	for(auto j : itr.second[1])
+	// 	{
+	// 		dump_bor<<j<<" ";
+	// 	}
+	// 	dump_bor<<endl;
 
-	}
+	// }
 
-	//Display partial meta edges
-	for(auto itr : basic.partial_meta_edge)
-	{
-		par_dump<<itr.first<<" "<<itr.second<<endl;
-	}
+	// //Display partial meta edges
+	// for(auto itr : basic.partial_meta_edge)
+	// {
+	// 	par_dump<<itr.first<<" "<<itr.second<<endl;
+	// }
 	
 }
 

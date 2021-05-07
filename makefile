@@ -22,3 +22,6 @@ sp:
 
 orkut:
 	$(run) -np 3 ./main input/distributed/orkut/com-orkut.ungraph.txt input/distributed/orkut/sccmap input/distributed/orkut/changes_orkut 2 1 input/distributed/orkut/partition 3
+
+fb:
+	$(run) -np 4 ./main large_inputs/facebook/input_fb input/distributed/orkut/sccmap large_inputs/facebook/change_fb 2 1 large_inputs/facebook/facebook_partition_4 4
