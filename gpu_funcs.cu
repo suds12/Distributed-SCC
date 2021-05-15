@@ -37,7 +37,5 @@ void cuda_sync()
 
 void create_MN_vector(int* meta_nodes, int size)
 {
-	cudaMalloc(&meta_nodes, size*sizeof(int));
-
-	
+	cudaMalloc(&meta_nodes, size*sizeof(int));	
 }

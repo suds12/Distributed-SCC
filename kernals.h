@@ -24,4 +24,5 @@ void create_MN_vector(int* meta_nodes, int size);
 
 void deallocate_device_mem(int* ptr);
 void cuda_sync();
-//void unpack_bcast_gpu(Basic& basic, int world_rank, int world_size);
+//void unpack_bcast_gpu(Basic& basic, int world_rank, int world_size);;
+

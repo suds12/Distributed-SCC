@@ -7,6 +7,8 @@
 #include <boost/graph/strong_components.hpp>
 #include <vector>
 #include "reader.hpp"
+#include "kernals.h"
+
 
 #define chunk_height 3
 #define chunk_width 5
@@ -123,7 +125,6 @@ void create_partial_meta_graph(Basic& basic, int world_rank)
 		index++;
 	}
 	basic.partial_ME_size = index;
-
 	
 }
 
@@ -163,7 +164,7 @@ void prepare_to_send(Basic& basic, int world_rank)
 
 }
 
-void bcast_meta_nodes(Basic& basic, int world_rank, int world_size)
+void bcast_meta_nodes(DeviceFuncs& device, Basic& basic, int world_rank, int world_size)
 {
 	/*
 	Here everyone broadcasts their meta nodes and outgoing interprocess edges using allgatherv. 
@@ -185,6 +186,7 @@ void bcast_meta_nodes(Basic& basic, int world_rank, int world_size)
 	int* internal_counts;
 	int* probe_displacements;
 	int* internal_displacements;
+	int tot_MN[1];
 
 	//probe_meta_node = arr_resize(probe_meta_node, 0, 100);
 	probe_meta_node = (int *)malloc(100000 * sizeof(int));
@@ -194,19 +196,19 @@ void bcast_meta_nodes(Basic& basic, int world_rank, int world_size)
 	{
 		probe_meta_node[index] = temp;
 		index++;
-		probe_meta_node[index] = basic.borders_in_of_scc[temp].size();
-		index++;
+		// probe_meta_node[index] = basic.borders_in_of_scc[temp].size();
+		// index++;
 		probe_meta_node[index] = basic.borders_out_of_scc[temp].size();
 		index++;
 
-		if(basic.borders_in_of_scc[temp].size() != 0)
-		{
-			for(auto itr : basic.borders_in_of_scc[temp])
-			{
-				probe_meta_node[index] = itr;
-				index++;
-			}
-		}
+		// if(basic.borders_in_of_scc[temp].size() != 0)
+		// {
+		// 	for(auto itr : basic.borders_in_of_scc[temp])
+		// 	{
+		// 		probe_meta_node[index] = itr;
+		// 		index++;
+		// 	}
+		// }
 		
 		if(basic.borders_out_of_scc[temp].size() != 0)
 		{
@@ -220,13 +222,23 @@ void bcast_meta_nodes(Basic& basic, int world_rank, int world_size)
 
 	}
 
+	tot_MN[0] = basic.meta_nodes.size();
+
+	int rbuf_MN[1];
+	MPI_Allreduce(tot_MN, rbuf_MN, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+	device.total_meta_nodes = rbuf_MN[0];
+
+
+
+
 	rbuf_size = (int *)malloc(world_size * 2 * sizeof(int));  //Buffer to hold sizes of both external and internal edges
+	
 	probe_size[0] = index;
 	probe_size[1] = basic.partial_ME_size;
-	
+
 	MPI_Allgather( probe_size, 2, MPI_INT, rbuf_size, 2, MPI_INT, MPI_COMM_WORLD);   // Sending the size of each probe message to all processors. We need this to calculate displacements when using allgatherv
 
-	
+
 	probe_counts = (int *)malloc(world_size * sizeof(int));
 	internal_counts = (int *)malloc(world_size * sizeof(int));
 	probe_displacements = (int *)malloc(world_size*sizeof(int));
@@ -254,8 +266,8 @@ void bcast_meta_nodes(Basic& basic, int world_rank, int world_size)
 	rbuf_data = (int *)malloc(disp*sizeof(int));
 	MPI_Allgatherv(probe_meta_node, index, MPI_INT, rbuf_data, probe_counts, probe_displacements, MPI_INT, MPI_COMM_WORLD);
 
-	basic.all_probe = rbuf_data;
-	basic.displacement = disp;
+	basic.external_data = rbuf_data;
+	basic.external_size= disp;
 
 	
 
@@ -263,14 +275,7 @@ void bcast_meta_nodes(Basic& basic, int world_rank, int world_size)
 	MPI_Allgatherv(basic.partial_ME_vector, basic.partial_ME_size, MPI_INT, rbuf_internal, internal_counts, internal_displacements, MPI_INT, MPI_COMM_WORLD);
 	basic.all_internal = rbuf_internal;
 	basic.internal_size = i_disp;
-
-	// if(world_rank == 0)
-	// {
-	// 	for(int i=0; i<i_disp; i++)
-	// 	{
-	// 		cout<<basic.all_internal[i]<<" ";
-	// 	}
-	// }
+	cuda_h2d(basic.external_data, device.external_data, basic.external_size);
 
 }
 
@@ -288,42 +293,42 @@ void unpack_bcast(Basic& basic, int world_rank, int world_size)
 	
 
 	//This can be done parallely by using 2 seperate pointers for traversal
-	while(index < basic.displacement)
-	{
-		unordered_set<int> invertices;
-		unordered_set<int> outvertices;
-		vector<unordered_set<int>> second;
+	// while(index < basic.displacement)
+	// {
+	// 	unordered_set<int> invertices;
+	// 	unordered_set<int> outvertices;
+	// 	vector<unordered_set<int>> second;
 
-		first = basic.all_probe[index];   //Storing meta node as key 
-		index++;
-		insize = basic.all_probe[index];
-		index++;
-		outsize = basic.all_probe[index];
-		index++;
+	// 	first = basic.all_probe[index];   //Storing meta node as key 
+	// 	index++;
+	// 	insize = basic.all_probe[index];
+	// 	index++;
+	// 	outsize = basic.all_probe[index];
+	// 	index++;
 
-		instart = index;
-		while(index < (instart + insize))   // Traversing and storing invertices as first column of value vector
-		{
-			if(basic.partition_of_vertex[basic.all_probe[index]] == world_rank) //Check if the vertex belongs to this partition
-			{
-				invertices.insert({basic.local_scc_map[basic.all_probe[index]] + (world_rank * global_modifier) });
-			}
-			index++;
-		}
-		second.push_back(invertices);
+	// 	instart = index;
+	// 	while(index < (instart + insize))   // Traversing and storing invertices as first column of value vector
+	// 	{
+	// 		if(basic.partition_of_vertex[basic.all_probe[index]] == world_rank) //Check if the vertex belongs to this partition
+	// 		{
+	// 			invertices.insert({basic.local_scc_map[basic.all_probe[index]] + (world_rank * global_modifier) });
+	// 		}
+	// 		index++;
+	// 	}
+	// 	second.push_back(invertices);
 
-		outstart = index;
-		while(index < (outstart + outsize))	//Traversing and storing outvertices as second column of value vector
-		{
-			if(basic.partition_of_vertex[basic.all_probe[index]] == world_rank) //Check if the vertex belongs to this partition
-			{
-				outvertices.insert({basic.local_scc_map[basic.all_probe[index]] + (world_rank * global_modifier) });
-			}
-			index++;
-		}
-		second.push_back(outvertices);		
-		basic.meta_in_out.insert({first,second});   //Push key and value vector into hashmap at end of each iteration
-	}
+	// 	outstart = index;
+	// 	while(index < (outstart + outsize))	//Traversing and storing outvertices as second column of value vector
+	// 	{
+	// 		if(basic.partition_of_vertex[basic.all_probe[index]] == world_rank) //Check if the vertex belongs to this partition
+	// 		{
+	// 			outvertices.insert({basic.local_scc_map[basic.all_probe[index]] + (world_rank * global_modifier) });
+	// 		}
+	// 		index++;
+	// 	}
+	// 	second.push_back(outvertices);		
+	// 	basic.meta_in_out.insert({first,second});   //Push key and value vector into hashmap at end of each iteration
+	// }
 }
 
 
@@ -336,6 +341,7 @@ void create_meta_graph_vector(Basic& basic, int world_rank, int world_size)
 	pair<int,int> temp;
 	basic.meta_graph_vector = (int *)malloc(basic.meta_in_out.size() * basic.meta_in_out.size() * sizeof(int));
 
+	#pragma omp parallel for collapse(2)
 	for(auto i : basic.meta_in_out)
 	{
 		for(auto j : basic.meta_in_out)
@@ -357,8 +363,6 @@ void create_meta_graph_vector(Basic& basic, int world_rank, int world_size)
 			index++;
 		}
 	}
-
-	
 }
 
 void reduce_meta_graph(Basic& basic, int world_rank, int world_size)
@@ -427,85 +431,63 @@ void reperform_scc(Basic& basic, MetaGraph& meta_graph, int world_rank, int worl
 
 }
 
-void send_probe(Basic& basic, int world_rank, int world_size)
+//------------------------GPU funcs ----------------------
+void unpack_bcast_gpu(DeviceFuncs& device, Basic& basic, int world_rank, int world_size)
 {
-	// mailbox = new int[basic.size_of_probe];
-	// mailbox = basic.probe_to_send;
+	/*
+	Here we unpack the broadcast message and store them in respective hash tables.
+	*/
+	int index = 0;
+	int first;
+	int iptr = 0, jptr=0;
+	int insize = 0; int outsize=0;
+	int instart, outstart;
 
-	// if(world_rank == 0)
- // 	{
-	//  	cout<<"mail from p0 : ";
-	//  	for(int i=0; i<basic.size_of_probe; i++)
-	//  	{
-	//  		cout<<basic.probe_to_send[i]<<" ";
-	//  	}
-	//  	cout<<endl;
-	//  }
-
-	int *mailbox; MPI_Win win;   //Window called mailbox created for 1 sided communication
-
-	/* create private memory */
- 	MPI_Alloc_mem(world_size * mailbox_displacement * sizeof(int), MPI_INFO_NULL, &mailbox);
- 	
- 	//cout<<"mail from p1 : ";
- 	for(int i=0; i<basic.size_of_probe; i++)
- 	{
- 		mailbox[(world_rank * mailbox_displacement) + i] = basic.probe_to_send[i];
- 		//cout<<basic.probe_to_send[i]<<" ";
- 		//cout<<mailbox[(world_rank * mailbox_displacement) + i]<<" ";
- 	}
- 	//cout<<endl;
-
-
-	/* locally declare memory as remotely accessible */
-	MPI_Win_create(mailbox, basic.size_of_probe*sizeof(int), sizeof(int), MPI_INFO_NULL, MPI_COMM_WORLD, &win);
-
- 	/* No local operations prior to this epoch, so give an assertion */
-	MPI_Win_fence(0,win);
+	create_MN_vector(device.meta_nodes, device.total_meta_nodes);
+	deallocate_device_mem(device.meta_nodes);
 	
-
-	for(auto target : basic.target_list)
-	{
-		//MPI_Put(mailbox, basic.size_of_probe, MPI_INT, target, sizeof(int), basic.size_of_probe, MPI_INT, win);
-		MPI_Put(mailbox + (world_rank * mailbox_displacement), basic.size_of_probe, MPI_INT, target, (world_rank * mailbox_displacement), basic.size_of_probe, MPI_INT, win);
-	}
-
-	//Complete the epoch - this will block until MPI_Get is complete 
-	MPI_Win_fence(0,win);
-	// if(world_rank == 1)
+	
+	
+	//This can be done parallely by using 2 seperate pointers for traversal
+	// while(index < basic.displacement)
 	// {
-	// 	cout<<"size "<<basic.size_of_probe<<" mail : ";
-	// 	int i=0;
-	// 	while(mailbox[i] != -1)
+	// 	unordered_set<int> invertices;
+	// 	unordered_set<int> outvertices;
+	// 	vector<unordered_set<int>> second;
+
+	// 	first = basic.all_probe[index];   //Storing meta node as key 
+	// 	index++;
+	// 	insize = basic.all_probe[index];
+	// 	index++;
+	// 	outsize = basic.all_probe[index];
+	// 	index++;
+
+	// 	instart = index;
+	// 	while(index < (instart + insize))   // Traversing and storing invertices as first column of value vector
 	// 	{
-	// 		//cout<<basic.probe_to_send[i]<<" ";
-	// 		cout<<mailbox[i]<<" ";
-	// 		i++;
+	// 		if(basic.partition_of_vertex[basic.all_probe[index]] == world_rank) //Check if the vertex belongs to this partition
+	// 		{
+	// 			invertices.insert({basic.local_scc_map[basic.all_probe[index]] + (world_rank * global_modifier) });
+	// 		}
+	// 		index++;
 	// 	}
-			
-			
+	// 	second.push_back(invertices);
+
+	// 	outstart = index;
+	// 	while(index < (outstart + outsize))	//Traversing and storing outvertices as second column of value vector
+	// 	{
+	// 		if(basic.partition_of_vertex[basic.all_probe[index]] == world_rank) //Check if the vertex belongs to this partition
+	// 		{
+	// 			outvertices.insert({basic.local_scc_map[basic.all_probe[index]] + (world_rank * global_modifier) });
+	// 		}
+	// 		index++;
+	// 	}
+	// 	second.push_back(outvertices);		
+	// 	basic.meta_in_out.insert({first,second});   //Push key and value vector into hashmap at end of each iteration
 	// }
-
-	//All done with the window - tell MPI there are no more epochs */
-	//MPI_Win_fence(MPI_MODE_NOSUCCEED,win);
-
-	 MPI_Win_free(&win);
-    MPI_Free_mem(mailbox);  
-
-	cout<<"doneeee";
-
-	
-    
-
-	
-
- 	// if(world_rank == 2)
- 	// {
- 	// 	cout<<" mailbox : ";
- 	// 	//for(auto i : mailbox)
- 	// 		cout<<mailbox[1]<<" ";
- 	// }
 }
+
+
 
 
 // void init_meta(Basic& basic)

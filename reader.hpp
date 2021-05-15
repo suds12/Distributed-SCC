@@ -100,7 +100,7 @@ void read_graph(char *argv[], Basic &basic, Graph& graph, int world_rank)
             }
             buffer[char_count - 1 ] = '\0';
             char_count = 0;
-            token = strtok(buffer, " ");
+            token = strtok(buffer, "\t");
             node1=atoi(token);
             token = strtok(NULL, " ");
             node2=atoi(token);
