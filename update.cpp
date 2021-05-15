@@ -7,6 +7,8 @@
 #include <boost/graph/strong_components.hpp>
 #include <vector>
 #include "reader.hpp"
+#include "kernals.h"
+
 
 #define chunk_height 3
 #define chunk_width 5
@@ -123,7 +125,7 @@ void create_partial_meta_graph(Basic& basic, int world_rank)
 		index++;
 	}
 	basic.partial_ME_size = index;
-
+	main_1();
 	
 }
 
@@ -336,6 +338,7 @@ void create_meta_graph_vector(Basic& basic, int world_rank, int world_size)
 	pair<int,int> temp;
 	basic.meta_graph_vector = (int *)malloc(basic.meta_in_out.size() * basic.meta_in_out.size() * sizeof(int));
 
+	#pragma omp parallel for collapse(2)
 	for(auto i : basic.meta_in_out)
 	{
 		for(auto j : basic.meta_in_out)
@@ -357,7 +360,7 @@ void create_meta_graph_vector(Basic& basic, int world_rank, int world_size)
 			index++;
 		}
 	}
-
+	cout<<"yoyoyoyoyoy";
 	
 }
 

@@ -6,7 +6,6 @@ Basic holds all the variables needed for SCC and the object reference is passed 
 #include <set>
 #include <map> 
 #include <unordered_map> 
-#include <utility> 
 #include <vector>
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/functional/hash.hpp>
@@ -41,7 +40,7 @@ public:
 	int displacement; //size of the entire probe message after gather
 	map<int,vector<unordered_set<int>>> meta_in_out;
 	int* meta_graph_vector; //bit vector with each index being a 1to1 combination of all metanodes and value denoting if there is an edge between. For N metanodes, the size is N^2
-	unordered_set<pair<int,int>, boost::hash<pair<int, int>> > partial_meta_edge; //Hashset of edges between metanodes within same process
+	unordered_set< pair <int,int>, boost::hash< pair< int, int > > > partial_meta_edge; //Hashset of edges between metanodes within same process
 	int* partial_ME_vector; //stores meta edges within processes. 
 	int partial_ME_size; 
 	int *all_internal; //array that stores all individual internal meta edges after allgatherv
