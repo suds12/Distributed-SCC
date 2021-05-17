@@ -1,9 +1,10 @@
 mpi_base?=/usr/local/packages/mpich/3.2/gcc-5
 boost?=/home/users/ssriniv2/packages/boost_1_72_0
 shared_scc=/home/users/ssriniv2/SCC/SharedSCC
-CC=$(mpi_base)/bin/mpic++ 
-run=$(mpi_base)/bin/mpirun
-
+#CC=$(mpi_base)/bin/mpic++ 
+#run=$(mpi_base)/bin/mpirun
+CC=mpic++
+run=mpirun
 
 all: main.cpp 
 	$(CC) -o main -g -w main.cpp -I$(boost)   -std=c++11
@@ -25,3 +26,6 @@ orkut:
 
 fb:
 	$(run) -np 4 ./main large_inputs/facebook/input_fb input/distributed/orkut/sccmap large_inputs/facebook/change_fb 2 1 large_inputs/facebook/facebook_partition_4 4
+
+fb_1:
+	$(run) -np 1 ./main large_inputs/facebook/input_fb input/distributed/orkut/sccmap large_inputs/facebook/change_fb 2 1 large_inputs/facebook/facebook_partition_1 1

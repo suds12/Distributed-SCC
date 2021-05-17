@@ -8,7 +8,7 @@
 #include "update.cpp"
 #include "reader.hpp"
 //#include "kamesh/scc_main.cpp"
-
+#include <ctime>
 
 using namespace std;
 //Global variables
@@ -57,6 +57,9 @@ int main(int argc, char *argv[])
     // cout<<"reading sccmap from rank "<<world_rank<<endl;
     // read_sccmap(argv,basic,world_rank);
 
+    clock_t time_req;
+    time_req = clock();
+
     cout<<"Performing initial SCC from rank "<<world_rank<<endl;
     perform_scc(argv,basic,graph,world_rank);
 
@@ -83,6 +86,8 @@ int main(int argc, char *argv[])
     cout<<"Reperforming SCC from rank "<<world_rank<<endl;
     reperform_scc(basic, meta_graph, world_rank, world_size);
 
+    time_req = clock() - time_req;
+    cout << "Using pow function, it took " << (float)time_req/CLOCKS_PER_SEC << " seconds" << endl;
     //send_probe(basic, world_rank, world_size);
     
 
