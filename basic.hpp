@@ -34,24 +34,20 @@ public:
 	unordered_set<int> target_list; //Hash set of all reciever PIDs. EAch process maintains a list PIDs that has a connection with it through border vertices.
 	map<int, unordered_set<int>>borders_in_of_scc;  //Hashmap of SCC ID to set of all incoming border vertices in that SCC 
 	map<int, unordered_set<int>>borders_out_of_scc;  //Hashmap of SCC ID to set of all outgoing border vertices in that SCC
-	//int *probe_to_send; 
-	//int size_of_probe;
-	//int *external_data; //array that stores all individual probes after allgatherv.
-	//int external_size; //size of the entire probe message after gather
+	
 	map<int,vector<unordered_set<int>>> meta_in_out;
 	int* meta_graph_vector; //bit vector with each index being a 1to1 combination of all metanodes and value denoting if there is an edge between. For N metanodes, the size is N^2
 	unordered_set< pair <int,int>, boost::hash< pair< int, int > > > partial_meta_edge; //Hashset of edges between metanodes within same process
 	int* partial_ME_vector; //stores meta edges within processes. 
 	int partial_ME_size; 
-	//int *all_internal; //array that stores all individual internal meta edges after allgatherv
-	//int internal_size; //size of all internal
-	//int *full_ME_vector; //Stores all meta edges after reduction
-	//int full_ME_vector_size;
 
 	int* all_meta_nodes; //Stores all the meta nodes
 	int* all_meta_nodes_size; //stores number of external edges for respective meta nodes
 	int* all_external; //stores all external edges in order of meta nodes
 	int* all_internal; //stores all internal edges in node1 node2 format
+	int size_amn[1];
+	int size_e[1];
+	int size_i[1];
 
 	map<int, pair<int,int>> edge_index; //hasmap that matches index from ME_vector to pair of meta nodes(meta edge)
 	vector<int>meta_scc; //scc of full meta graph

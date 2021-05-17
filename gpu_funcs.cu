@@ -19,21 +19,29 @@ void cuda_h2d(int* src, int* dst, int size)
 
 	cudaMallocManaged(&dst, size*sizeof(int));
 	cudaMemcpy(dst, src, size*sizeof(int), cudaMemcpyHostToDevice);
+	//cudaMemcpy(temp, dst, size*sizeof(int), cudaMemcpyDeviceToHost);
+}
+
+void cuda_d2h(int* src, int* dst, int size)
+{
+	//cudaMallocManaged(&src, size*sizeof(int));
+	cudaMemcpy(src, dst, size*sizeof(int), cudaMemcpyDeviceToHost);
+	
+	
 }
 
 void deallocate_device_mem(int* ptr)
 {
 	cudaFree(ptr);
 
-}
+} 
 
 void cuda_sync()
 {
 	cudaDeviceSynchronize();
 }
 
-void create_MN_vector(int* meta_nodes, int size)
-{
-	cudaMallocManaged(&meta_nodes, size*sizeof(int));	
 
-}
+
+
+
