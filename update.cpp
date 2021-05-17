@@ -130,76 +130,34 @@ void create_partial_meta_graph(Basic& basic, int world_rank)
 
 
 
-void prepare_to_send(Basic& basic, int world_rank)
-{
-	//We need to send the border vertices to the respected partitions of its connections
-	basic.probe_to_send = arr_resize(basic.probe_to_send, 0, 100);
-	basic.probe_to_send[0] = 1; //1 at index 0 indicates a probe message. REst of message starts index 1
-	int index=1;
-	for(auto itr : basic.border_out_vertices)
-	{
-		for(auto i : itr.second)
-		{
-			int local_scc_of_vertex = basic.local_scc_map[itr.first];
-			int global_scc_val = (world_rank * global_modifier) + local_scc_of_vertex; 
-			basic.probe_to_send[index] = global_scc_val;
-			index++;
-			basic.probe_to_send[index] = i;
-			basic.target_list.insert(basic.partition_of_vertex[i]); 
-			index++;
-		}
-		
-	}
-	basic.probe_to_send[index] = -1;
-	index++;
-	basic.size_of_probe = index;
-	
-
-	//test
-	if(world_rank == 1)
-	{
-		// for(auto i : basic.target_list)
-		// 	cout<<i<<" - ";
-	}
-
-}
-
 void bcast_meta_nodes(DeviceFuncs& device, Basic& basic, int world_rank, int world_size)
 {
 	/*
-	Here everyone broadcasts their meta nodes and outgoing interprocess edges using allgatherv. 
-	Individual messages(probes) are of the form:
-	index[0] = meta node Id
-	index[1] = number of incoming edges to meta node
-	index[2] = number of outgoing edges from meta node
-	index[3] to index[n] = vertex IDs of incoming edges followed by outgiong edges where n = index[1] + index[2]
-	This repeats itself for all metanodes bringing total size of message to M*(n+3) where M = number of meta nodes
 	*/
 
-	int index=0;
-	int* probe_meta_node;
+	int index_meta_nodes=0;
+	int index_meta_nodes_size=0;
+	int index_external_edge=0;
 	int* rbuf_size;  
-	int* rbuf_data; 
+	
 	int* rbuf_internal;
 	int probe_size[2];
-	int* probe_counts;
-	int* internal_counts;
-	int* probe_displacements;
-	int* internal_displacements;
-	int tot_MN[1];
+	
 
 	//probe_meta_node = arr_resize(probe_meta_node, 0, 100);
-	probe_meta_node = (int *)malloc(100000 * sizeof(int));
+	int* partial_meta_node = (int *)malloc(basic.meta_nodes.size() * sizeof(int)); 
+	int* partial_meta_node_size = (int *)malloc(basic.meta_nodes.size() * sizeof(int));
+	int* partial_external_edge = (int *)malloc(1000 * sizeof(int));
 
 	
 	for(auto temp : basic.meta_nodes)
 	{
-		probe_meta_node[index] = temp;
-		index++;
+		partial_meta_node[index_meta_nodes] = temp;
+		index_meta_nodes++;
 		// probe_meta_node[index] = basic.borders_in_of_scc[temp].size();
 		// index++;
-		probe_meta_node[index] = basic.borders_out_of_scc[temp].size();
-		index++;
+		partial_meta_node_size[index_meta_nodes_size] = basic.borders_out_of_scc[temp].size();
+		index_meta_nodes_size++;
 
 		// if(basic.borders_in_of_scc[temp].size() != 0)
 		// {
@@ -214,222 +172,184 @@ void bcast_meta_nodes(DeviceFuncs& device, Basic& basic, int world_rank, int wor
 		{
 			for(auto itr : basic.borders_out_of_scc[temp])
 			{
-				probe_meta_node[index] = itr;
-				index++;
+				partial_external_edge[index_external_edge] = itr;
+				index_external_edge++;
 			}
 		}
 		
 
 	}
 
-	tot_MN[0] = basic.meta_nodes.size();
+	//Allgather number of meta nodes and number of external edges from each process
+	//We need this for allocating suitable buffers when we allgather the metanodes
+	int tot_MN[3];
+	tot_MN[0] = basic.meta_nodes.size(); //number of meta nodes per proccess
+	tot_MN[1] = index_external_edge; //Number of external edge per process
+	tot_MN[2] = basic.partial_ME_size; //Number of internal_edges * 2(multiply by 2 because sending the edges in the form of node1 node2)
+	int* rbuf_MN_external_counts = (int *)malloc(world_size *3* sizeof(int));
+	MPI_Allgather(tot_MN, 3, MPI_INT, rbuf_MN_external_counts, 3, MPI_INT, MPI_COMM_WORLD);
 
-	int rbuf_MN[1];
-	MPI_Allreduce(tot_MN, rbuf_MN, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-	device.total_meta_nodes = rbuf_MN[0];
-
-
-
-
-	rbuf_size = (int *)malloc(world_size * 2 * sizeof(int));  //Buffer to hold sizes of both external and internal edges
-	
-	probe_size[0] = index;
-	probe_size[1] = basic.partial_ME_size;
-
-	MPI_Allgather( probe_size, 2, MPI_INT, rbuf_size, 2, MPI_INT, MPI_COMM_WORLD);   // Sending the size of each probe message to all processors. We need this to calculate displacements when using allgatherv
-
-
-	probe_counts = (int *)malloc(world_size * sizeof(int));
-	internal_counts = (int *)malloc(world_size * sizeof(int));
-	probe_displacements = (int *)malloc(world_size*sizeof(int));
-	internal_displacements = (int *)malloc(world_size*sizeof(int));
-
-	int disp = 0;
-	int i_disp = 0;
+	//Calculate counts and displacements 
+	int disp_MN = 0;
+	int disp_external = 0;
+	int disp_internal = 0;
+	int* MN_counts = (int *)malloc(world_size * sizeof(int));
+	int* MN_displacements = (int *)malloc(world_size * sizeof(int));
+	int* external_counts = (int *)malloc(world_size * sizeof(int));
+	int* external_displacements = (int *)malloc(world_size * sizeof(int));
+	int* internal_counts = (int *)malloc(world_size * sizeof(int));
+	int* internal_displacements = (int *)malloc(world_size * sizeof(int));
 	int j=0;
-
-	
-	
-	for(int i=0; i<world_size*2; i++)
+	for(int i=0; i<world_size*3; i++)
 	{
-		probe_displacements[j] = disp;
-		disp += rbuf_size[i];
-		probe_counts[j] = rbuf_size[i];
+		MN_displacements[j] = disp_MN;
+		disp_MN += rbuf_MN_external_counts[i];
+		MN_counts[j] = rbuf_MN_external_counts[i];
 		i++;
-		internal_displacements[j] = i_disp;
-		i_disp += rbuf_size[i];
-		internal_counts[j] = rbuf_size[i];
+
+		external_displacements[j] = disp_external;
+		disp_external += rbuf_MN_external_counts[i];
+		external_counts[j] = rbuf_MN_external_counts[i];
+		i++;
+
+		internal_displacements[j] = disp_internal;
+		disp_internal += rbuf_MN_external_counts[i];
+		internal_counts[j] = rbuf_MN_external_counts[i];
 		j++;
+
 	}
+	//Allgather metanodes and its sizes from each proces
+	int* rbuf_MN_data = (int *)malloc(disp_MN * sizeof(int));
+	int* rbuf_MN_data_size = (int *)malloc(disp_MN * sizeof(int));
+	MPI_Allgatherv(partial_meta_node, index_meta_nodes, MPI_INT, rbuf_MN_data, MN_counts, MN_displacements, MPI_INT, MPI_COMM_WORLD);
+	MPI_Allgatherv(partial_meta_node_size, index_meta_nodes_size, MPI_INT, rbuf_MN_data_size, MN_counts, MN_displacements, MPI_INT, MPI_COMM_WORLD);
 
+	//Calculate external edge displacements for each individual meta node across all processes
+
+	//Allgather external edges from each process
+	int* rbuf_external_data = (int *)malloc(disp_external * sizeof(int));
+	MPI_Allgatherv(partial_external_edge, index_external_edge, MPI_INT, rbuf_external_data, external_counts, external_displacements, MPI_INT, MPI_COMM_WORLD);
+
+	//Allgather internal edges from each process
+	int* rbuf_internal_data = (int *)malloc(disp_internal * sizeof(int));
+	MPI_Allgatherv(basic.partial_ME_vector, basic.partial_ME_size, MPI_INT, rbuf_internal_data, internal_counts, internal_displacements, MPI_INT, MPI_COMM_WORLD);
 	
-	rbuf_data = (int *)malloc(disp*sizeof(int));
-	MPI_Allgatherv(probe_meta_node, index, MPI_INT, rbuf_data, probe_counts, probe_displacements, MPI_INT, MPI_COMM_WORLD);
-
-	basic.external_data = rbuf_data;
-	basic.external_size= disp;
-
-	
-
-	rbuf_internal = (int *)malloc(i_disp*sizeof(int));
-	MPI_Allgatherv(basic.partial_ME_vector, basic.partial_ME_size, MPI_INT, rbuf_internal, internal_counts, internal_displacements, MPI_INT, MPI_COMM_WORLD);
-	basic.all_internal = rbuf_internal;
-	basic.internal_size = i_disp;
-	cuda_h2d(basic.external_data, device.external_data, basic.external_size);
-
-}
-
-void unpack_bcast(Basic& basic, int world_rank, int world_size)
-{
-	/*
-	Here we unpack the broadcast message and store them in respective hash tables.
-	*/
-	int index = 0;
-	int first;
-	int iptr = 0, jptr=0;
-	int insize = 0; int outsize=0;
-	int instart, outstart;
-
-	
-
-	//This can be done parallely by using 2 seperate pointers for traversal
-	// while(index < basic.displacement)
-	// {
-	// 	unordered_set<int> invertices;
-	// 	unordered_set<int> outvertices;
-	// 	vector<unordered_set<int>> second;
-
-	// 	first = basic.all_probe[index];   //Storing meta node as key 
-	// 	index++;
-	// 	insize = basic.all_probe[index];
-	// 	index++;
-	// 	outsize = basic.all_probe[index];
-	// 	index++;
-
-	// 	instart = index;
-	// 	while(index < (instart + insize))   // Traversing and storing invertices as first column of value vector
-	// 	{
-	// 		if(basic.partition_of_vertex[basic.all_probe[index]] == world_rank) //Check if the vertex belongs to this partition
-	// 		{
-	// 			invertices.insert({basic.local_scc_map[basic.all_probe[index]] + (world_rank * global_modifier) });
-	// 		}
-	// 		index++;
-	// 	}
-	// 	second.push_back(invertices);
-
-	// 	outstart = index;
-	// 	while(index < (outstart + outsize))	//Traversing and storing outvertices as second column of value vector
-	// 	{
-	// 		if(basic.partition_of_vertex[basic.all_probe[index]] == world_rank) //Check if the vertex belongs to this partition
-	// 		{
-	// 			outvertices.insert({basic.local_scc_map[basic.all_probe[index]] + (world_rank * global_modifier) });
-	// 		}
-	// 		index++;
-	// 	}
-	// 	second.push_back(outvertices);		
-	// 	basic.meta_in_out.insert({first,second});   //Push key and value vector into hashmap at end of each iteration
-	// }
-}
-
-
-void create_meta_graph_vector(Basic& basic, int world_rank, int world_size)
-{
-	//Unfortunately this is a pretty expensive function. Need to improve this. Can be parallelized
-	//Here we create bit vector where the indices are every 1to1 combination of all meta nodes and values being 0 or 1 depending on the presence of an edge between them.
-	//The array is created by traversing hashtables so it is N^2 for N meta nodes
-	int index = 0;
-	pair<int,int> temp;
-	basic.meta_graph_vector = (int *)malloc(basic.meta_in_out.size() * basic.meta_in_out.size() * sizeof(int));
-
-	#pragma omp parallel for collapse(2)
-	for(auto i : basic.meta_in_out)
+	if(world_rank == 1)
 	{
-		for(auto j : basic.meta_in_out)
+		//cout<<disp_internal;
+		for(int i=0;i<disp_internal;i++)
 		{
-			if(i.second[1].find(j.first) != i.second[1].end())
-			{
-				basic.meta_graph_vector[index] = 1;
-				temp.first = i.first;
-				temp.second = j.first;
-				basic.edge_index.insert({index,temp});
-			}
-			else
-			{
-				basic.meta_graph_vector[index] = 0;
-				temp.first = i.first;
-				temp.second = j.first;
-				basic.edge_index.insert({index,temp});
-			}
-			index++;
+			cout<<rbuf_internal_data[i]<<" ";
 		}
 	}
-}
 
-void reduce_meta_graph(Basic& basic, int world_rank, int world_size)
-{
-	//Here we reduce the meta graph bit vector to fill in the missing meta edges from every process. At the end of all_reduce, every process maintains the same copy of of the vector.
-	int* rbuf;
-	int buf_size = basic.meta_in_out.size() * basic.meta_in_out.size();
-	rbuf = (int *)malloc(basic.meta_in_out.size() * basic.meta_in_out.size() * sizeof(int));
-
-	MPI_Allreduce(basic.meta_graph_vector, rbuf, buf_size, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
-	basic.full_ME_vector = rbuf;
-	basic.full_ME_vector_size = buf_size;
-
-	// if(world_rank == 2)
-	// {
-	// 	cout<<endl;
-	// 	for(int i = 0; i<buf_size; i++)
-	// 	{
-	// 		cout<<rbuf[i]<<" ";
-	// 	}
-	// }
-	// cout<<endl;
-}
-
-void create_full_meta_graph(Basic& basic, MetaGraph& meta_graph, int world_rank, int world_size)
-{
-	//Reading edges into a boost graph. This should be replaced when the shared scc code is ready.
-	for(int i=0;i<basic.full_ME_vector_size;i++)
-	{
-		if(basic.full_ME_vector[i] == 1)
-		{
-			boost::add_edge (basic.edge_index[i].first, basic.edge_index[i].second, meta_graph);
-		}
-	}
-	int itr = 0;
-	int node1, node2;
-	while(itr<basic.internal_size)
-	{
-		node1 = basic.all_internal[itr];
-		itr++;
-		node2 = basic.all_internal[itr];
-		itr++;
-
-		boost::add_edge (node1, node2, meta_graph);
-
-	}
-}
-
-void reperform_scc(Basic& basic, MetaGraph& meta_graph, int world_rank, int world_size)
-{
-	int graph_size = boost::num_vertices (meta_graph);
-	basic.meta_scc.reserve(graph_size);
-	size_t num_components = boost::strong_components (meta_graph, &basic.meta_scc[0]);
-
-	// if(world_rank ==0)
-	// {
-	// 	cout<<endl;
-	// 	for(int i=0;i<graph_size;i++)
-	// 	{
-	// 		if(basic.meta_in_out.find(i) != basic.meta_in_out.end())
-	// 		{
-	// 			cout<<i<<" : "<<basic.meta_scc[i]<<endl;
-	// 		}
-	// 	}
-	// }
+	//Rename required buffers for ease
+	basic.all_meta_nodes = rbuf_MN_data;
+	basic.all_meta_nodes_size = rbuf_MN_data_size;
+	basic.all_external = rbuf_external_data;
+	basic.all_internal = rbuf_internal_data;
 
 }
+
+
+// void create_meta_graph_vector(Basic& basic, int world_rank, int world_size)
+// {
+// 	//Unfortunately this is a pretty expensive function. Need to improve this. Can be parallelized
+// 	//Here we create bit vector where the indices are every 1to1 combination of all meta nodes and values being 0 or 1 depending on the presence of an edge between them.
+// 	//The array is created by traversing hashtables so it is N^2 for N meta nodes
+// 	int index = 0;
+// 	pair<int,int> temp;
+// 	basic.meta_graph_vector = (int *)malloc(basic.meta_in_out.size() * basic.meta_in_out.size() * sizeof(int));
+
+// 	#pragma omp parallel for collapse(2)
+// 	for(auto i : basic.meta_in_out)
+// 	{
+// 		for(auto j : basic.meta_in_out)
+// 		{
+// 			if(i.second[1].find(j.first) != i.second[1].end())
+// 			{
+// 				basic.meta_graph_vector[index] = 1;
+// 				temp.first = i.first;
+// 				temp.second = j.first;
+// 				basic.edge_index.insert({index,temp});
+// 			}
+// 			else
+// 			{
+// 				basic.meta_graph_vector[index] = 0;
+// 				temp.first = i.first;
+// 				temp.second = j.first;
+// 				basic.edge_index.insert({index,temp});
+// 			}
+// 			index++;
+// 		}
+// 	}
+// }
+
+// void reduce_meta_graph(Basic& basic, int world_rank, int world_size)
+// {
+// 	//Here we reduce the meta graph bit vector to fill in the missing meta edges from every process. At the end of all_reduce, every process maintains the same copy of of the vector.
+// 	int* rbuf;
+// 	int buf_size = basic.meta_in_out.size() * basic.meta_in_out.size();
+// 	rbuf = (int *)malloc(basic.meta_in_out.size() * basic.meta_in_out.size() * sizeof(int));
+
+// 	MPI_Allreduce(basic.meta_graph_vector, rbuf, buf_size, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
+// 	basic.full_ME_vector = rbuf;
+// 	basic.full_ME_vector_size = buf_size;
+
+// 	// if(world_rank == 2)
+// 	// {
+// 	// 	cout<<endl;
+// 	// 	for(int i = 0; i<buf_size; i++)
+// 	// 	{
+// 	// 		cout<<rbuf[i]<<" ";
+// 	// 	}
+// 	// }
+// 	// cout<<endl;
+// }
+
+// void create_full_meta_graph(Basic& basic, MetaGraph& meta_graph, int world_rank, int world_size)
+// {
+// 	//Reading edges into a boost graph. This should be replaced when the shared scc code is ready.
+// 	for(int i=0;i<basic.full_ME_vector_size;i++)
+// 	{
+// 		if(basic.full_ME_vector[i] == 1)
+// 		{
+// 			boost::add_edge (basic.edge_index[i].first, basic.edge_index[i].second, meta_graph);
+// 		}
+// 	}
+// 	int itr = 0;
+// 	int node1, node2;
+// 	while(itr<basic.internal_size)
+// 	{
+// 		node1 = basic.all_internal[itr];
+// 		itr++;
+// 		node2 = basic.all_internal[itr];
+// 		itr++;
+
+// 		boost::add_edge (node1, node2, meta_graph);
+
+// 	}
+// }
+
+// void reperform_scc(Basic& basic, MetaGraph& meta_graph, int world_rank, int world_size)
+// {
+// 	int graph_size = boost::num_vertices (meta_graph);
+// 	basic.meta_scc.reserve(graph_size);
+// 	size_t num_components = boost::strong_components (meta_graph, &basic.meta_scc[0]);
+
+// 	// if(world_rank ==0)
+// 	// {
+// 	// 	cout<<endl;
+// 	// 	for(int i=0;i<graph_size;i++)
+// 	// 	{
+// 	// 		if(basic.meta_in_out.find(i) != basic.meta_in_out.end())
+// 	// 		{
+// 	// 			cout<<i<<" : "<<basic.meta_scc[i]<<endl;
+// 	// 		}
+// 	// 	}
+// 	// }
+
+// }
 
 //------------------------GPU funcs ----------------------
 void unpack_bcast_gpu(DeviceFuncs& device, Basic& basic, int world_rank, int world_size)
@@ -444,7 +364,7 @@ void unpack_bcast_gpu(DeviceFuncs& device, Basic& basic, int world_rank, int wor
 	int instart, outstart;
 
 	create_MN_vector(device.meta_nodes, device.total_meta_nodes);
-	deallocate_device_mem(device.meta_nodes);
+	
 	
 	
 	
@@ -485,6 +405,7 @@ void unpack_bcast_gpu(DeviceFuncs& device, Basic& basic, int world_rank, int wor
 	// 	second.push_back(outvertices);		
 	// 	basic.meta_in_out.insert({first,second});   //Push key and value vector into hashmap at end of each iteration
 	// }
+	deallocate_device_mem(device.meta_nodes);
 }
 
 

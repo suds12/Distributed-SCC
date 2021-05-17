@@ -17,11 +17,8 @@
 void cuda_h2d(int* src, int* dst, int size)
 {
 
-	cudaMalloc(&dst, size*sizeof(int));
+	cudaMallocManaged(&dst, size*sizeof(int));
 	cudaMemcpy(dst, src, size*sizeof(int), cudaMemcpyHostToDevice);
-
-
-
 }
 
 void deallocate_device_mem(int* ptr)
@@ -37,5 +34,6 @@ void cuda_sync()
 
 void create_MN_vector(int* meta_nodes, int size)
 {
-	cudaMalloc(&meta_nodes, size*sizeof(int));	
+	cudaMallocManaged(&meta_nodes, size*sizeof(int));	
+
 }

@@ -70,7 +70,7 @@ int main(int argc, char *argv[])
 
     //-------GPU-------------
 
-    unpack_bcast_gpu(device, basic, world_rank, world_size);
+    //unpack_bcast_gpu(device, basic, world_rank, world_size);
 
     //------------------
     
